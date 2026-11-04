@@ -2,7 +2,7 @@
 // Arrival is stored as one absolute moment; each person sees it in their own timezone plus a live countdown.
 // Needs auth.js (sb, getToken), app.js (el, esc), chat.js (coordChip) and gate.js (me, logout).
 const SHOW_LANDED_MIN = 30 // keep a landing on screen this long after it arrives
-const SIDE = { ours: 'Our attack', theirs: 'Enemy incoming' }
+const SIDE = { ours: 'Our attack', theirs: 'Enemy incoming', move: 'Fleet move' }
 
 let landings = []
 
@@ -26,6 +26,18 @@ function countdown(ms) {
   return `${m}m ${String(sec).padStart(2, '0')}s`
 }
 
+// "UncleDaddy" or "Dethmachien (DONUT)": who lives at these coordinates, once the universe data has loaded
+function ownerNote(coords) {
+  const o = world && ownerAt(world, coords)
+  return o ? `<span class="l-owner">${esc(o.name)}${o.alliance ? ` (${esc(o.alliance)})` : ''}</span>` : ''
+}
+
+// an "attack" on a planet of our own alliance is really a move (also fixes ones entered before moves existed)
+function sideOf(l) {
+  const o = l.side === 'ours' && world && ownerAt(world, `${l.galaxy}:${l.system}:${l.position}`)
+  return o && o.alliance && o.alliance.toLowerCase() === ALLIES[0].toLowerCase() ? 'move' : l.side
+}
+
 function renderLandings() {
   if (!landings.length) return (el('landings').innerHTML = '<p class="empty">No landings planned.</p>')
   // still-coming ones first (soonest first), recently landed ones after
@@ -34,11 +46,13 @@ function renderLandings() {
   el('landings').innerHTML = ordered.map((l) => {
     const at = new Date(l.arrives_at).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })
     const mine = l.author === me.user.id
+    const side = sideOf(l)
     return `
-      <div class="landing ${esc(l.side)} ${upcoming(l) ? '' : 'landed'}">
+      <div class="landing ${esc(side)} ${upcoming(l) ? '' : 'landed'}">
         <div class="l-top">
-          <span class="l-side">${esc(SIDE[l.side] ?? l.side)}</span>
+          <span class="l-side">${esc(SIDE[side] ?? side)}</span>
           ${coordChip(l.galaxy, l.system, l.position)}
+          ${ownerNote(`${l.galaxy}:${l.system}:${l.position}`)}
           <span class="l-strength">${esc(l.strength)}</span>
         </div>
         <div class="l-time"><b class="count" data-t="${esc(l.arrives_at)}"></b> <span>${esc(at)}</span></div>
@@ -68,6 +82,27 @@ el('landings').onclick = async (e) => {
   }
 }
 
+// An "attack" on a planet of our own alliance can't be an attack, so it is a fleet move: switch it, and say so.
+function suggestMove() {
+  const f = el('landing-form').elements
+  const hint = el('landing-hint')
+  hint.textContent = ''
+  const coords = [f.galaxy.value, f.system.value, f.position.value].map(Number).join(':')
+  const o = world && ownerAt(world, coords)
+  if (!o) return
+  const ours = o.alliance && o.alliance.toLowerCase() === ALLIES[0].toLowerCase()
+  if (f.side.value === 'ours' && ours) {
+    f.side.value = 'move'
+    hint.textContent = `That is ${o.name}'s planet (${o.alliance}), so this is a fleet move, not an attack.`
+  } else if (f.side.value === 'move' && !ours) {
+    hint.textContent = `Careful: that planet belongs to ${o.name}${o.alliance ? ` (${o.alliance})` : ''}, not ${ALLIES[0]}. Is this really a move?`
+  } else if (f.side.value === 'move') {
+    hint.textContent = `${o.name}'s planet (${o.alliance}).`
+  }
+}
+for (const n of ['galaxy', 'system', 'position']) el('landing-form').elements[n].oninput = suggestMove
+el('landing-form').elements.side.onchange = suggestMove
+
 // "Say it all in one go": parse the sentence and fill in the form. The person checks it and taps Add.
 el('say-fill').onclick = () => {
   const r = parseLanding(el('say').value)
@@ -76,8 +111,9 @@ el('say-fill').onclick = () => {
   if (r.galaxy) [f.galaxy.value, f.system.value, f.position.value] = [r.galaxy, r.system, r.position]
   if (r.strength) f.strength.value = r.strength
   if (r.hours || r.minutes) [f.hours.value, f.minutes.value] = [r.hours, r.minutes]
+  suggestMove()
   const heard = [
-    SIDE[r.side],
+    SIDE[f.side.value],
     r.galaxy && `[${r.galaxy}:${r.system}:${r.position}]`,
     r.strength,
     (r.hours || r.minutes) && `lands in ${r.hours}h ${r.minutes}m`,
@@ -107,6 +143,7 @@ el('landing-form').onsubmit = async (e) => {
     })
     e.target.reset()
     el('say-result').textContent = ''
+    el('landing-hint').textContent = ''
     el('landing-add').open = false
     loadLandings()
   } catch (err) {

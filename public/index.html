@@ -77,7 +77,16 @@
     </div>
 
     <section id="intel" hidden>
-      <details id="calc" open>
+      <div id="intel-main">
+      <details id="intel-add" open>
+        <summary>+ Add a report</summary>
+        <p class="hint"><b>Easy (phone or computer):</b> open the report, tap the key icon, copy the id that starts with sr-us-265- (or cr-us-265-) and paste it here. You can paste several, one per line. The id is looked up at a third-party service (ogapi.faw-kes.de), which can see it.</p>
+        <p class="hint"><b>Private:</b> on a computer, Inspect the report, find the element with id messagedetails, Copy, Copy outerHTML, and paste that instead. Nothing leaves our own system.</p>
+        <textarea id="intel-paste" rows="3" placeholder="Paste a report id, or a whole report page"></textarea>
+        <button id="intel-go">Read report</button>
+        <p id="intel-msg" class="say-result"></p>
+      </details>
+      <details id="calc">
         <summary>Flight calculator</summary>
         <div class="row2">
           <label>From <input id="fc-from" type="text" inputmode="text" placeholder="1:98:5" autocomplete="off"></label>
@@ -104,15 +113,12 @@
         <p id="fc-result" class="fc-result"></p>
       </details>
 
-      <details id="intel-add">
-        <summary>+ Add a report</summary>
-        <p class="hint"><b>Easy (phone or computer):</b> open the report, tap the key icon, copy the id that starts with sr-us-265- (or cr-us-265-) and paste it here. You can paste several, one per line. The id is looked up at a third-party service (ogapi.faw-kes.de), which can see it.</p>
-        <p class="hint"><b>Private:</b> on a computer, Inspect the report, find the element with id messagedetails, Copy, Copy outerHTML, and paste that instead. Nothing leaves our own system.</p>
-        <textarea id="intel-paste" rows="3" placeholder="Paste a report id, or a whole report page"></textarea>
-        <button id="intel-go">Read report</button>
-        <p id="intel-msg" class="say-result"></p>
-      </details>
-      <div id="intel-list"></div>
+        <nav id="roster-tabs"></nav>
+        <input id="roster-search" type="search" placeholder="Search any player by name" autocomplete="off">
+        <p id="roster-note" class="hint"></p>
+        <div id="intel-list"></div>
+      </div>
+      <div id="player-page" hidden></div>
     </section>
 
     <section id="chat" hidden>
@@ -128,13 +134,14 @@
             <button type="button" id="say-fill">Fill in the form from this</button>
             <p id="say-result" class="say-result"></p>
             <label>Type
-              <select name="side"><option value="ours">Our attack</option><option value="theirs">Enemy incoming</option></select>
+              <select name="side"><option value="ours">Our attack</option><option value="move">Fleet move (our own planet)</option><option value="theirs">Enemy incoming</option></select>
             </label>
             <div class="row3">
               <label>Galaxy <input name="galaxy" type="number" inputmode="numeric" min="1" max="7"></label>
               <label>System <input name="system" type="number" inputmode="numeric" min="1" max="499"></label>
               <label>Planet <input name="position" type="number" inputmode="numeric" min="1" max="15"></label>
             </div>
+            <p id="landing-hint" class="say-result"></p>
             <label>Fleet size (rough guess is fine)
               <input name="strength" type="text" maxlength="40" placeholder="e.g. 3M points, or 200 battleships">
             </label>
@@ -182,6 +189,7 @@
   <script src="/intel.js"></script>
   <script src="/flight.js"></script>
   <script src="/calc.js"></script>
+  <script src="/player.js"></script>
   <script src="/gate.js"></script>
 </body>
 </html>

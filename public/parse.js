@@ -15,8 +15,9 @@ function parseLanding(input) {
     return !!m
   }
 
-  // who: enemy words flip it to "theirs"
+  // who: enemy words flip it to "theirs"; moving-our-own-fleet words make it a "move"
   if (/\b(enemy|incoming|inbound|hostile|theirs|attacking us|coming at us|pma)\b/.test(text)) out.side = 'theirs'
+  else if (/\b(mov(?:e|es|ing)|deploy(?:ing|ment)?|relocat\w*|transfer(?:ring)?|rebas\w*)\b/.test(text)) out.side = 'move'
 
   // when: "2 hours", "15 minutes", "2h", "an hour", "half an hour"
   take(/\bhalf an hour\b/, () => (out.minutes += 30))
