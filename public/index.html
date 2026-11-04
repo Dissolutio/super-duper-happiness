@@ -13,25 +13,62 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <header>
+  <!-- Exactly one of these four sections is visible at a time (gate.js decides). All start hidden. -->
+
+  <section id="login" class="auth" hidden>
     <h1>War Room</h1>
-    <button id="refresh" aria-label="Refresh">&#x21bb;</button>
-  </header>
-  <p id="status">loading...</p>
+    <form id="login-form">
+      <input id="email" type="email" autocomplete="username" placeholder="Email" required>
+      <input id="password" type="password" autocomplete="current-password" placeholder="Password" required>
+      <button type="submit">Sign in</button>
+      <button type="button" id="forgot" class="link">Forgot password / first time? Send me a link</button>
+    </form>
+    <p id="login-msg" class="msg"></p>
+  </section>
 
-  <section id="summary"></section>
+  <section id="setpw" class="auth" hidden>
+    <h1>Choose a password</h1>
+    <form id="setpw-form">
+      <input id="newpw" type="password" autocomplete="new-password" placeholder="New password (10+ characters)" required>
+      <input id="newpw2" type="password" autocomplete="new-password" placeholder="Repeat it" required>
+      <button type="submit">Save password</button>
+    </form>
+    <p id="setpw-msg" class="msg"></p>
+  </section>
 
-  <nav id="tabs"></nav>
-  <label class="sort">Sort
-    <select id="sort">
-      <option value="rank">Rank</option>
-      <option value="milPoints">Military</option>
-      <option value="ships">Ships</option>
-      <option value="points">Points</option>
-    </select>
-  </label>
-  <section id="players"></section>
+  <section id="pending" class="auth" hidden>
+    <h1>Almost in</h1>
+    <p>You're signed in as <b id="pending-who"></b>, but an admin hasn't approved your account yet. Ask them, then come back.</p>
+    <button id="pending-signout">Sign out</button>
+  </section>
 
+  <div id="app" hidden>
+    <header>
+      <h1>War Room</h1>
+      <span>
+        <button id="refresh" aria-label="Refresh">&#x21bb;</button>
+        <button id="signout">Sign out</button>
+      </span>
+    </header>
+    <p id="status">loading...</p>
+
+    <section id="summary"></section>
+
+    <nav id="tabs"></nav>
+    <label class="sort">Sort
+      <select id="sort">
+        <option value="rank">Rank</option>
+        <option value="milPoints">Military</option>
+        <option value="ships">Ships</option>
+        <option value="points">Points</option>
+      </select>
+    </label>
+    <section id="players"></section>
+  </div>
+
+  <script src="/config.js"></script>
+  <script src="/auth.js"></script>
   <script src="/app.js"></script>
+  <script src="/gate.js"></script>
 </body>
 </html>

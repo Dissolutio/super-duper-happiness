@@ -156,4 +156,4 @@ el('tabs').onclick = (e) => {
 }
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js')
-refresh()
+// refresh() is called by gate.js once the person is logged in and approved
