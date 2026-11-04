@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>DONUT War Room</title>
+  <meta name="theme-color" content="#16161c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="War Room">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon-192.png">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <!-- Exactly one of these four sections is visible at a time (gate.js decides). All start hidden. -->
+
+  <section id="login" class="auth" hidden>
+    <h1>War Room</h1>
+    <form id="login-form">
+      <input id="email" type="email" autocomplete="username" placeholder="Email" required>
+      <input id="password" type="password" autocomplete="current-password" placeholder="Password" required>
+      <button type="submit">Sign in</button>
+      <button type="button" id="forgot" class="link">Forgot password / first time? Send me a link</button>
+    </form>
+    <p id="login-msg" class="msg"></p>
+  </section>
+
+  <section id="setpw" class="auth" hidden>
+    <h1>Choose a password</h1>
+    <form id="setpw-form">
+      <input id="newpw" type="password" autocomplete="new-password" placeholder="New password (10+ characters)" required>
+      <input id="newpw2" type="password" autocomplete="new-password" placeholder="Repeat it" required>
+      <button type="submit">Save password</button>
+    </form>
+    <p id="setpw-msg" class="msg"></p>
+  </section>
+
+  <section id="pending" class="auth" hidden>
+    <h1>Almost in</h1>
+    <p>You're signed in as <b id="pending-who"></b>, but an admin hasn't approved your account yet. Ask them, then come back.</p>
+    <button id="pending-signout">Sign out</button>
+  </section>
+
+  <div id="app" hidden>
+    <header>
+      <h1>War Room</h1>
+      <span>
+        <button id="rename">Name</button>
+        <button id="signout">Sign out</button>
+      </span>
+    </header>
+
+    <nav id="views">
+      <button data-view="data" class="active">Data</button>
+      <button data-view="general">General</button>
+      <button data-view="targets">Targets</button>
+    </nav>
+
+    <div id="data">
+      <p id="status">loading...</p>
+      <button id="refresh">&#x21bb; Refresh</button>
+
+      <section id="summary"></section>
+
+      <nav id="tabs"></nav>
+      <label class="sort">Sort
+        <select id="sort">
+          <option value="rank">Rank</option>
+          <option value="milPoints">Military</option>
+          <option value="ships">Ships</option>
+          <option value="points">Points</option>
+        </select>
+      </label>
+      <section id="players"></section>
+    </div>
+
+    <section id="chat" hidden>
+      <div id="landings-box" hidden>
+        <h2>Landings</h2>
+        <div id="landings"></div>
+        <details id="landing-add">
+          <summary>+ Add a landing</summary>
+          <form id="landing-form">
+            <label>Type
+              <select name="side"><option value="ours">Our attack</option><option value="theirs">Enemy incoming</option></select>
+            </label>
+            <div class="row3">
+              <label>Galaxy <input name="galaxy" type="number" inputmode="numeric" min="1" max="9"></label>
+              <label>System <input name="system" type="number" inputmode="numeric" min="1" max="499"></label>
+              <label>Planet <input name="position" type="number" inputmode="numeric" min="1" max="15"></label>
+            </div>
+            <label>Fleet size (rough guess is fine)
+              <input name="strength" type="text" maxlength="40" placeholder="e.g. 3M points, or 200 battleships">
+            </label>
+            <div class="row3">
+              <label>Lands in: hours <input name="hours" type="number" inputmode="numeric" min="0" max="168"></label>
+              <label>minutes <input name="minutes" type="number" inputmode="numeric" min="0" max="59"></label>
+            </div>
+            <button type="submit">Add landing</button>
+            <p id="landing-msg" class="msg"></p>
+          </form>
+        </details>
+      </div>
+      <div id="msgs"></div>
+      <p id="chat-msg" class="msg"></p>
+      <form id="chat-form">
+        <textarea id="chat-input" rows="2" maxlength="2000" placeholder="Message... (coords like 2:45:8 become links)" enterkeyhint="send"></textarea>
+        <button id="chat-send" type="submit">Send</button>
+      </form>
+    </section>
+  </div>
+
+  <script src="/config.js"></script>
+  <script src="/auth.js"></script>
+  <script src="/app.js"></script>
+  <script src="/chat.js"></script>
+  <script src="/landings.js"></script>
+  <script src="/gate.js"></script>
+</body>
+</html>

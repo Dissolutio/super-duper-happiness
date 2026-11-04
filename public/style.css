@@ -1,0 +1,92 @@
+/* Mobile first. Ally 0 (us) = orange, ally 1 (enemy) = red. */
+:root { --bg: #16161c; --card: #20202a; --line: #33333f; --text: #e6e6ee; --dim: #8a8a9a; --a0: #f5a03c; --a1: #ff5a5a; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.4 system-ui, sans-serif;
+  padding: env(safe-area-inset-top) calc(12px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
+}
+[hidden] { display: none !important; }
+
+/* login / set password / pending */
+.auth { max-width: 360px; margin: 12vh auto 0; }
+.auth form { display: grid; gap: 10px; }
+input { font: inherit; font-size: 16px; /* 16px stops iOS zooming on focus */ color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 8px; min-height: 44px; padding: 0 12px; }
+button.link { background: none; border: none; color: var(--dim); font-size: .85rem; text-decoration: underline; }
+.msg { color: #ffb86b; min-height: 1.4em; }
+
+header { display: flex; justify-content: space-between; align-items: center; }
+h1 { font-size: 1.3rem; margin: 12px 0 4px; }
+button, select { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 8px; min-height: 44px; padding: 0 14px; }
+#status { color: var(--dim); font-size: .8rem; margin: 0 0 12px; }
+
+/* summary: label | us | them */
+#summary table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 10px; overflow: hidden; }
+#summary th, #summary td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--line); }
+#summary th:first-child, #summary td:first-child { text-align: left; color: var(--dim); font-weight: normal; }
+#summary thead th { font-size: 1.1rem; }
+#summary td.win { font-weight: bold; }
+.c0 { color: var(--a0); }
+.c1 { color: var(--a1); }
+
+/* tabs + sort */
+#tabs { display: flex; gap: 8px; margin: 16px 0 8px; }
+#tabs button { flex: 1; font-weight: bold; }
+#tabs button.active.c0 { border-color: var(--a0); background: #3a2a14; }
+#tabs button.active.c1 { border-color: var(--a1); background: #3a1717; }
+.sort { display: block; color: var(--dim); font-size: .85rem; margin-bottom: 8px; }
+.sort select { margin-left: 8px; }
+
+/* player cards */
+#players { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.card { background: var(--card); border-radius: 10px; padding: 10px 12px; border-left: 4px solid var(--line); }
+.card.c0 { border-left-color: var(--a0); color: var(--text); }
+.card.c1 { border-left-color: var(--a1); color: var(--text); }
+.card .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.card .name { font-weight: bold; overflow-wrap: anywhere; }
+.card .rank { color: var(--dim); }
+.card dl { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin: 6px 0 0; text-align: center; font-size: .85rem; }
+.card dt { color: var(--dim); font-size: .7rem; }
+.card dd { margin: 0; }
+.badge { font-size: .65rem; background: var(--line); border-radius: 4px; padding: 1px 5px; margin-left: 4px; vertical-align: middle; font-weight: normal; }
+.empty { color: var(--dim); }
+
+/* header + view switcher */
+header span { display: flex; gap: 8px; }
+#views { display: flex; gap: 8px; margin: 8px 0 12px; }
+#views button { flex: 1; }
+#views button.active { background: #2c2c3a; border-color: var(--dim); font-weight: bold; }
+
+/* chat */
+#msgs { display: grid; gap: 10px; min-height: 60vh; align-content: start; padding-bottom: 8px; }
+.msg-row .meta { font-size: .75rem; color: var(--dim); margin-bottom: 2px; }
+.msg-row .meta b { color: var(--text); }
+.msg-row .body { background: var(--card); border-radius: 10px; padding: 8px 10px; overflow-wrap: anywhere; }
+.msg-row.mine .body { background: #3a2a14; }
+a.coord { color: var(--a0); font-weight: bold; text-decoration: none; }
+.mention { color: #7ab8ff; }
+#chat-form { position: sticky; bottom: 0; display: flex; gap: 8px; padding: 8px 0 env(safe-area-inset-bottom); background: var(--bg); }
+#chat-form textarea { flex: 1; resize: none; font: inherit; font-size: 16px; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+#chat-form button { align-self: stretch; }
+
+/* landings */
+#landings-box h2 { font-size: 1rem; margin: 0 0 8px; color: var(--dim); text-transform: uppercase; letter-spacing: .05em; }
+#landings { display: grid; gap: 8px; margin-bottom: 10px; }
+.landing { background: var(--card); border-radius: 10px; padding: 10px 12px; border-left: 4px solid var(--line); }
+.landing.ours { border-left-color: var(--a0); }
+.landing.theirs { border-left-color: var(--a1); }
+.l-top { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.l-side { font-size: .75rem; text-transform: uppercase; color: var(--dim); }
+.landing.theirs .l-side { color: var(--a1); }
+.l-strength { margin-left: auto; font-weight: bold; }
+.l-time { margin-top: 4px; }
+.l-time .count { font-size: 1.4rem; margin-right: 8px; }
+.l-time span { color: var(--dim); }
+.l-who { margin-top: 2px; font-size: .8rem; color: var(--dim); display: flex; justify-content: space-between; align-items: center; }
+button.remove { min-height: 32px; font-size: .8rem; padding: 0 10px; }
+#landing-add { margin-bottom: 14px; }
+#landing-add summary { min-height: 44px; display: flex; align-items: center; color: var(--a0); font-weight: bold; cursor: pointer; }
+#landing-form { display: grid; gap: 10px; }
+#landing-form label { display: grid; gap: 4px; font-size: .85rem; color: var(--dim); }
+#landing-form .row3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; }
+.landing.landed { opacity: .55; }
