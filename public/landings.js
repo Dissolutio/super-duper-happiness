@@ -1,6 +1,6 @@
 // Landings: fleets arriving somewhere, pinned at the top of the Targets channel.
 // Arrival is stored as one absolute moment; each person sees it in their own timezone plus a live countdown.
-// Needs auth.js (sb, getToken), app.js (el, esc), chat.js (renderBody's coordinate link format) and gate.js (me, logout).
+// Needs auth.js (sb, getToken), app.js (el, esc), chat.js (coordChip) and gate.js (me, logout).
 const SHOW_LANDED_MIN = 30 // keep a landing on screen this long after it arrives
 const SIDE = { ours: 'Our attack', theirs: 'Enemy incoming' }
 
@@ -32,14 +32,13 @@ function renderLandings() {
   const upcoming = (l) => new Date(l.arrives_at) > Date.now()
   const ordered = [...landings].sort((a, b) => upcoming(b) - upcoming(a) || new Date(a.arrives_at) - new Date(b.arrives_at))
   el('landings').innerHTML = ordered.map((l) => {
-    const url = `${GAME_URL}?page=ingame&amp;component=galaxy&amp;galaxy=${l.galaxy}&amp;system=${l.system}&amp;position=${l.position}`
     const at = new Date(l.arrives_at).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })
     const mine = l.author === me.user.id
     return `
       <div class="landing ${esc(l.side)} ${upcoming(l) ? '' : 'landed'}">
         <div class="l-top">
           <span class="l-side">${esc(SIDE[l.side] ?? l.side)}</span>
-          <a class="coord" href="${url}" target="_blank" rel="noopener noreferrer">[${l.galaxy}:${l.system}:${l.position}]</a>
+          ${coordChip(l.galaxy, l.system, l.position)}
           <span class="l-strength">${esc(l.strength)}</span>
         </div>
         <div class="l-time"><b class="count" data-t="${esc(l.arrives_at)}"></b> <span>${esc(at)}</span></div>
