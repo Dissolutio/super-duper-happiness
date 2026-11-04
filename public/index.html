@@ -82,6 +82,11 @@
         <details id="landing-add">
           <summary>+ Add a landing</summary>
           <form id="landing-form">
+            <label>Say it all in one go (use your keyboard's microphone if you like)
+              <textarea id="say" rows="2" placeholder="e.g. enemy 2 45 8, about 3 million, lands in 2 hours 15 minutes"></textarea>
+            </label>
+            <button type="button" id="say-fill">Fill in the form from this</button>
+            <p id="say-result" class="say-result"></p>
             <label>Type
               <select name="side"><option value="ours">Our attack</option><option value="theirs">Enemy incoming</option></select>
             </label>
@@ -131,6 +136,7 @@
   <script src="/auth.js"></script>
   <script src="/app.js"></script>
   <script src="/chat.js"></script>
+  <script src="/parse.js"></script>
   <script src="/landings.js"></script>
   <script src="/gate.js"></script>
 </body>
