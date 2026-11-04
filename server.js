@@ -14,6 +14,10 @@ const TYPES = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascrip
 
 const cache = {} // url -> { time, body }
 
+// Report lookup by ID (third-party service, see README). Only this exact URL shape is passed on; anything else is a 404.
+const REPORT_HOST = 'https://ogapi.faw-kes.de'
+const REPORT_PATH = /^\/ogapi\/v1\/report\/((?:sr|cr)-us-265-[0-9a-f]{40})\/true$/
+
 http
   .createServer(async (req, res) => {
     if (req.url.startsWith('/api/')) {
@@ -29,6 +33,19 @@ http
       } catch (e) {
         res.statusCode = 502
         return res.end(String(e))
+      }
+    }
+
+    const report = req.url.match(REPORT_PATH)
+    if (report) {
+      try {
+        const r = await fetch(`${REPORT_HOST}/v1/report/${report[1]}/true`, { signal: AbortSignal.timeout(15000) })
+        res.statusCode = r.status
+        res.setHeader('Content-Type', 'application/json')
+        return res.end(await r.text())
+      } catch (e) {
+        res.statusCode = 502
+        return res.end('report service unreachable')
       }
     }
 
