@@ -25,3 +25,8 @@ Only invited, approved people get in. One-time setup:
 Each new player: invite them in step 4, they set a password from the email link, then you run the "approve a player" SQL.
 
 `public/config.js` holds the project URL and publishable key (public by design). Never commit the secret key or DB password.
+
+## Chat
+
+Run `supabase/chat.sql` (after `schema.sql`). Channels are rows in `public.channels` plus a button in `#views` in `public/index.html`.
+Messages are plain text; `2:45:8` / `[2:45:8]` link to the galaxy view, `@name` is highlighted. New messages arrive by polling every 4s.

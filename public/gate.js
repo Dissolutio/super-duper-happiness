@@ -1,7 +1,9 @@
 // Decides what to show: login, set-password (from invite/reset email), waiting-for-approval, or the app.
 // Needs auth.js and app.js loaded first.
 const screens = ['login', 'setpw', 'pending', 'app']
+let me = null // { user, profile } once logged in; chat.js uses it
 function show(name, message = '') {
+  if (name !== 'app') stopChat()
   screens.forEach((s) => (el(s).hidden = s !== name))
   if (message) el(name === 'app' ? 'status' : name + '-msg').textContent = message
 }
@@ -9,12 +11,14 @@ const say = (id, text) => (el(id).textContent = text)
 
 async function enter() {
   try {
-    const { user, profile } = await getMe()
+    me = await getMe()
+    const { user, profile } = me
     if (!profile?.approved) {
       say('pending-who', user.email)
       return show('pending')
     }
     show('app')
+    showView('data')
     refresh()
   } catch (e) {
     if (e.status === 401 || e.status === 403) {
@@ -67,6 +71,18 @@ async function logout() {
   show('login')
 }
 el('signout').onclick = logout
+
+el('rename').onclick = async () => {
+  const name = prompt('Display name (shown in chat, 32 characters max):', me.profile.display_name)?.trim()
+  if (!name || name === me.profile.display_name) return
+  if (name.length > 32) return alert('32 characters max.')
+  try {
+    await sb('/rest/v1/profiles?id=eq.' + encodeURIComponent(me.user.id), { method: 'PATCH', body: { display_name: name }, token: await getToken() })
+    me.profile.display_name = name
+  } catch (err) {
+    alert(err.message)
+  }
+}
 el('pending-signout').onclick = logout
 
 // ---- start ----

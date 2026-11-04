@@ -46,29 +46,49 @@
     <header>
       <h1>War Room</h1>
       <span>
-        <button id="refresh" aria-label="Refresh">&#x21bb;</button>
+        <button id="rename">Name</button>
         <button id="signout">Sign out</button>
       </span>
     </header>
-    <p id="status">loading...</p>
 
-    <section id="summary"></section>
+    <nav id="views">
+      <button data-view="data" class="active">Data</button>
+      <button data-view="general">General</button>
+      <button data-view="targets">Targets</button>
+    </nav>
 
-    <nav id="tabs"></nav>
-    <label class="sort">Sort
-      <select id="sort">
-        <option value="rank">Rank</option>
-        <option value="milPoints">Military</option>
-        <option value="ships">Ships</option>
-        <option value="points">Points</option>
-      </select>
-    </label>
-    <section id="players"></section>
+    <div id="data">
+      <p id="status">loading...</p>
+      <button id="refresh">&#x21bb; Refresh</button>
+
+      <section id="summary"></section>
+
+      <nav id="tabs"></nav>
+      <label class="sort">Sort
+        <select id="sort">
+          <option value="rank">Rank</option>
+          <option value="milPoints">Military</option>
+          <option value="ships">Ships</option>
+          <option value="points">Points</option>
+        </select>
+      </label>
+      <section id="players"></section>
+    </div>
+
+    <section id="chat" hidden>
+      <div id="msgs"></div>
+      <p id="chat-msg" class="msg"></p>
+      <form id="chat-form">
+        <textarea id="chat-input" rows="2" maxlength="2000" placeholder="Message... (coords like 2:45:8 become links)" enterkeyhint="send"></textarea>
+        <button id="chat-send" type="submit">Send</button>
+      </form>
+    </section>
   </div>
 
   <script src="/config.js"></script>
   <script src="/auth.js"></script>
   <script src="/app.js"></script>
+  <script src="/chat.js"></script>
   <script src="/gate.js"></script>
 </body>
 </html>
