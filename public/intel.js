@@ -2,7 +2,7 @@
 // A newer report always replaces older data (decided in the database, see supabase/intel.sql).
 // Needs auth.js (sb, getToken), app.js (el, esc), reports.js (parseReport, reportIds, fetchReport) and gate.js (logout).
 
-const SHIPS = { 202: 'Small cargo', 209: 'Recycler', 204: 'Light fighter', 207: 'Battleship', 219: 'Pathfinder' }
+const SPEED_SHIPS = { 202: 'Small cargo', 209: 'Recycler', 204: 'Light fighter', 207: 'Battleship', 219: 'Pathfinder' }
 
 function ago(iso) {
   const m = Math.max(0, Math.floor((Date.now() - new Date(iso)) / 60000))
@@ -21,13 +21,17 @@ async function loadIntel() {
   }
 }
 
+let intelRows = [] // also used by the flight calculator
+
 function renderIntel(rows) {
+  intelRows = rows
+  if (typeof fillTechChoices === 'function') fillTechChoices()
   if (!rows.length) return (el('intel-list').innerHTML = '<p class="empty">No players yet. Paste a spy report above.</p>')
   el('intel-list').innerHTML = rows.map((r) => {
     const t = r.tech ?? {}
     const lv = (id) => (t[id] ?? '?')
     const c = r.combat_pct ?? {}
-    const bonus = Object.entries(SHIPS).filter(([id]) => r.speed_bonus?.[id] != null)
+    const bonus = Object.entries(SPEED_SHIPS).filter(([id]) => r.speed_bonus?.[id] != null)
       .map(([id, name]) => `${name} ${r.speed_bonus[id]}%`).join(' &middot; ')
     return `
       <div class="card">
