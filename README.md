@@ -30,3 +30,8 @@ Each new player: invite them in step 4, they set a password from the email link,
 
 Run `supabase/chat.sql` (after `schema.sql`). Channels are rows in `public.channels` plus a button in `#views` in `public/index.html`.
 Messages are plain text; `2:45:8` / `[2:45:8]` link to the galaxy view, `@name` is highlighted. New messages arrive by polling every 4s.
+
+## Landings
+
+Run `supabase/landings.sql` (after `schema.sql`). Pinned at the top of Targets: a list of fleets landing (ours or enemy incoming) with live
+countdowns in each viewer's timezone, and a collapsed "+ Add a landing" form. Arrival time is computed on the server (now + minutes from now).
