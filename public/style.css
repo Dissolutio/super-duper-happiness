@@ -6,6 +6,15 @@ body {
   font: 16px/1.4 system-ui, sans-serif;
   padding: env(safe-area-inset-top) calc(12px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
 }
+[hidden] { display: none !important; }
+
+/* login / set password / pending */
+.auth { max-width: 360px; margin: 12vh auto 0; }
+.auth form { display: grid; gap: 10px; }
+input { font: inherit; font-size: 16px; /* 16px stops iOS zooming on focus */ color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 8px; min-height: 44px; padding: 0 12px; }
+button.link { background: none; border: none; color: var(--dim); font-size: .85rem; text-decoration: underline; }
+.msg { color: #ffb86b; min-height: 1.4em; }
+
 header { display: flex; justify-content: space-between; align-items: center; }
 h1 { font-size: 1.3rem; margin: 12px 0 4px; }
 button, select { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 8px; min-height: 44px; padding: 0 14px; }

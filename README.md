@@ -11,3 +11,17 @@ Throwaway OGame dashboard for the Jishui (s265-us) alliance war. Reads the publi
 - It's an installable PWA (manifest + service worker).
 
 API docs (unofficial): https://gist.github.com/psmolak/409d038fb4a9157aecf25c84110d5b55
+
+## Login (Supabase)
+
+Only invited, approved people get in. One-time setup:
+
+1. Supabase dashboard -> SQL Editor -> run `supabase/schema.sql`.
+2. Authentication -> Sign In / Providers -> turn OFF "Allow new users to sign up". Set minimum password length to 10+.
+3. Authentication -> URL Configuration -> Site URL = your Netlify URL; add `http://localhost:3000` to Redirect URLs.
+4. Authentication -> Users -> Invite user (yourself first). Click the email link, choose a password.
+5. Run the "approve + admin" SQL at the bottom of `schema.sql` with your email.
+
+Each new player: invite them in step 4, they set a password from the email link, then you run the "approve a player" SQL.
+
+`public/config.js` holds the project URL and publishable key (public by design). Never commit the secret key or DB password.

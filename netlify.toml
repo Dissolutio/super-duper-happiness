@@ -7,11 +7,11 @@
   to = "https://s265-us.ogame.gameforge.com/api/:splat"
   status = 200
 
-# Security headers for every page. If you add a new outside host (e.g. Supabase), it must be added to connect-src.
+# Security headers for every page. Any new outside host (like Supabase) must be listed in connect-src.
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://wcihwuagdrbdohiyrfei.supabase.co; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "no-referrer"
     X-Frame-Options = "DENY"
