@@ -30,6 +30,7 @@ async function loadCalc() {
     return (el('fc-result').textContent = 'Could not load the universe data: ' + e.message)
   }
   recalc()
+  if (typeof renderRoster === 'function') renderRoster() // alliance lists need the universe data
 }
 
 // the "whose tech" menu lists everyone we have a spy report on; called by intel.js whenever the list reloads
@@ -58,6 +59,28 @@ const fmtTime = (s) => {
   return d ? `${d}d ${h}h ${m}m` : h ? `${h}h ${String(m).padStart(2, '0')}m ${String(sec).padStart(2, '0')}s` : `${m}m ${String(sec).padStart(2, '0')}s`
 }
 
+// what the boxes currently say
+function calcInputs() {
+  const num = (id) => Math.max(0, Number(el(id).value) || 0)
+  return {
+    ship: SHIPS.find((s) => s.id === Number(el('fc-ship').value)),
+    tech: { comb: num('fc-comb'), imp: num('fc-imp'), hyper: num('fc-hyper') },
+    lf: Number(el('fc-lf').value) || 0, mission: el('fc-mission').value, pct: Number(el('fc-pct').value),
+  }
+}
+
+// used by the player page: flight time from the calculator's From box to some coordinates, or null if it can't be worked out
+function calcFlightTo(coords) {
+  const from = parseCoords(el('fc-from').value), to = parseCoords(coords)
+  if (!world || !from || !to) return null
+  const { ship, tech, lf, mission, pct } = calcInputs()
+  return flightSeconds(world, from, to, ship, tech, lf, mission, pct).seconds
+}
+function calcSummary() {
+  const { ship, mission, pct } = calcInputs()
+  return `from ${el('fc-from').value.trim()} by ${ship.name}, ${mission}, ${pct}%`
+}
+
 function recalc() {
   fcSave()
   const out = el('fc-result')
@@ -66,10 +89,8 @@ function recalc() {
   if (!from || !to) return (out.textContent = 'Enter both coordinates, like 1:98:5.')
   const ok = (c) => c.g >= 1 && c.g <= world.galaxies && c.s >= 1 && c.s <= world.systems && c.p >= 1 && c.p <= 15
   if (!ok(from) || !ok(to)) return (out.textContent = `Coordinates look wrong (galaxy 1-${world.galaxies}, system 1-${world.systems}, planet 1-15).`)
-  const num = (id) => Math.max(0, Number(el(id).value) || 0)
-  const ship = SHIPS.find((s) => s.id === Number(el('fc-ship').value))
-  const tech = { comb: num('fc-comb'), imp: num('fc-imp'), hyper: num('fc-hyper') }
-  const r = flightSeconds(world, from, to, ship, tech, Number(el('fc-lf').value) || 0, el('fc-mission').value, Number(el('fc-pct').value))
+  const { ship, tech, lf, mission, pct } = calcInputs()
+  const r = flightSeconds(world, from, to, ship, tech, lf, mission, pct)
   const at = new Date(Date.now() + r.seconds * 1000).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })
   out.innerHTML = `<b>${fmtTime(r.seconds)}</b> &middot; arrives ${esc(at)}<br>
     <span class="hint">distance ${r.distance.toLocaleString()} &middot; ${esc(ship.name)} speed ${Math.round(r.shipSpeed).toLocaleString()}.
@@ -83,7 +104,7 @@ function showPlanets() {
   if (!p) return (el('fc-planets').innerHTML = '')
   const list = world.byPlayer.get(p.id) ?? []
   el('fc-planets').innerHTML = list.length
-    ? list.map((x) => `<button type="button" class="coord" data-c="${esc(x.coords)}">[${esc(x.coords)}]${x.moon ? ' &#9790;' : ''} ${esc(x.name)}</button>`).join('')
+    ? list.map((x) => `<button type="button" class="chip" data-c="${esc(x.coords)}">[${esc(x.coords)}]${x.moon ? ' &#9790;' : ''} ${esc(x.name)}</button>`).join('')
     : '<span class="hint">No planets known for that player.</span>'
 }
 

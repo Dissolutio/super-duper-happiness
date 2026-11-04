@@ -62,3 +62,8 @@ and whose tech to use: anyone we have a spy report on (drives and lifeform speed
 - Formula and server rules (fleet speed 8 peaceful / 1 war, wraparound, empty and inactive systems skipped, target system always counts) are read from `serverData.xml`, `universe.xml` and `players.xml`.
 - Checked against four real in-game recycler times (21m58s / 31m23s deployment, 19m54s / 28m25s transport), all exact.
 - A fleet flies at its slowest ship, so the calculator takes one ship. Universe data is up to a week old, so a route can be off by a system near new or changed planets.
+
+## Players tab layout
+Add a report (open, ready to paste) comes first, then the flight calculator (closed), then the roster: Known players, one tab per alliance in `ALLIES` (shows how many members have a spy report), and a search box for any player in the universe.
+Tap a player for their page: tech, lifeform speed, last fight, and every known planet with a tappable coordinate and the flight time from the calculator's From box.
+After a paste the app says how many players were updated, or "No new intel" (already added, nothing changed, or we already hold newer data).
