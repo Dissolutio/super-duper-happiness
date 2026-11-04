@@ -87,7 +87,12 @@ function showView(view) { // 'data', 'players' or a channel slug
   el('chat').hidden = !isChat
   el('landings-box').hidden = view !== 'targets'
   $('#views button').forEach((b) => b.classList.toggle('active', b.dataset.view === view))
-  if (view === 'players') { loadIntel(); loadCalc() }
+  if (typeof closePlayer === 'function') closePlayer()
+  if (view === 'players') {
+    loadIntel()
+    loadCalc()
+    if (!matchMedia('(pointer: coarse)').matches) el('intel-paste').focus() // computers: ready to paste. On phones focusing would pop the keyboard up.
+  }
   if (!isChat) return
   el('msgs').innerHTML = ''
   poll()

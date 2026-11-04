@@ -1,8 +1,13 @@
-// Players screen: what we know about each player from pasted reports.
+// What we know about players, from pasted reports, and the paste box itself.
 // A newer report always replaces older data (decided in the database, see supabase/intel.sql).
-// Needs auth.js (sb, getToken), app.js (el, esc), reports.js (parseReport, reportIds, fetchReport) and gate.js (logout).
+// Needs auth.js (sb, getToken), app.js (el, esc), reports.js (parseReport, reportIds, fetchReport), flight.js (SHIPS) and gate.js (logout).
+// The player cards and player page are drawn by player.js.
 
-const SPEED_SHIPS = { 202: 'Small cargo', 209: 'Recycler', 204: 'Light fighter', 207: 'Battleship', 219: 'Pathfinder' }
+const TECH_NAMES = { 106: 'Espionage', 108: 'Computer', 109: 'Weapons', 110: 'Shields', 111: 'Armour', 115: 'Combustion', 117: 'Impulse', 118: 'Hyperspace' }
+// reports looked up by id come from a third-party service, so say so
+const VIA = { id: ' (looked up by id)' }
+
+let intelRows = [] // everything the database knows, newest load; also used by the flight calculator and player.js
 
 function ago(iso) {
   const m = Math.max(0, Math.floor((Date.now() - new Date(iso)) / 60000))
@@ -13,80 +18,84 @@ function ago(iso) {
 
 async function loadIntel() {
   try {
-    const rows = await sb('/rest/v1/player_intel?select=*&order=name.asc', { token: await getToken() })
-    renderIntel(rows)
+    intelRows = await sb('/rest/v1/player_intel?select=*&order=name.asc', { token: await getToken() })
+    if (typeof fillTechChoices === 'function') fillTechChoices()
+    renderRoster()
   } catch (e) {
     if (e.status === 401) return logout()
     el('intel-msg').textContent = e.message
   }
 }
 
-let intelRows = [] // also used by the flight calculator
+// ---- telling the person what a report changed ----
 
-function renderIntel(rows) {
-  intelRows = rows
-  if (typeof fillTechChoices === 'function') fillTechChoices()
-  if (!rows.length) return (el('intel-list').innerHTML = '<p class="empty">No players yet. Paste a spy report above.</p>')
-  el('intel-list').innerHTML = rows.map((r) => {
-    const t = r.tech ?? {}
-    const lv = (id) => (t[id] ?? '?')
-    const c = r.combat_pct ?? {}
-    const bonus = Object.entries(SPEED_SHIPS).filter(([id]) => r.speed_bonus?.[id] != null)
-      .map(([id, name]) => `${name} ${r.speed_bonus[id]}%`).join(' &middot; ')
-    return `
-      <div class="card">
-        <div class="top"><span class="name">${esc(r.name)}</span><span class="rank">${esc(r.character_class ?? '')}</span></div>
-        <dl>
-          <div><dt>Combustion</dt><dd>${lv(115)}</dd></div>
-          <div><dt>Impulse</dt><dd>${lv(117)}</dd></div>
-          <div><dt>Hyperspace</dt><dd>${lv(118)}</dd></div>
-          <div><dt>Weapons</dt><dd>${lv(109)}</dd></div>
-          <div><dt>Shields</dt><dd>${lv(110)}</dd></div>
-          <div><dt>Armour</dt><dd>${lv(111)}</dd></div>
-        </dl>
-        ${r.tech_at ? `<div class="hint">Tech from a spy report ${ago(r.tech_at)}${VIA[r.tech_via] ?? ''}</div>` : '<div class="hint">No spy report yet</div>'}
-        ${bonus ? `<div class="hint">Lifeform speed: ${bonus}</div>` : ''}
-        ${r.combat_at ? `<div class="hint">Last fight ${ago(r.combat_at)}${VIA[r.combat_via] ?? ''}: weapons ${esc(c.weapon ?? '?')}%, shields ${esc(c.shield ?? '?')}%, armour ${esc(c.armor ?? '?')}%</div>` : ''}
-      </div>`
-  }).join('')
+// what this report would change on the profile we already hold (row may be undefined = new player)
+function techChanges(rep, row) {
+  const out = []
+  for (const [id, v] of Object.entries(rep.tech)) {
+    const old = row?.tech?.[id]
+    if (old !== v) out.push(old == null ? `${TECH_NAMES[id]} ${v}` : `${TECH_NAMES[id]} ${old} → ${v}`)
+  }
+  const known = (id) => SHIPS.some((s) => s.id === Number(id))
+  const speedDiffers = Object.entries(rep.speed_bonus).some(([id, v]) => known(id) && !(Math.abs((row?.speed_bonus?.[id] ?? NaN) - v) < 0.01))
+  if (speedDiffers) out.push('lifeform speed')
+  return out
 }
 
-// reports looked up by id come from a third-party service, so say so
-const VIA = { id: ' (looked up by id)' }
-
-const RESULT = {
-  added: 'Saved.',
-  older: 'Saved, but we already had newer data for that player, so the profile was not changed.',
-  duplicate: 'That report was already added.',
+function combatChanges(m, row) {
+  const old = row?.combat_pct ?? {}
+  return [['weapon', 'weapons'], ['shield', 'shields'], ['armor', 'armour']]
+    .filter(([k]) => m.pct[k] != null && old[k] !== m.pct[k])
+    .map(([k, label]) => (old[k] == null ? `${label} ${m.pct[k]}%` : `${label} ${old[k]}% → ${m.pct[k]}%`))
 }
 
-// save one parsed report, returns a sentence for the user
+// save one parsed report. Returns { lines, updated } where updated = how many players got new intel
 async function saveReport(rep) {
-  const r = await sb('/rest/v1/rpc/add_intel', { method: 'POST', body: { p: rep }, token: await getToken() })
-  const who = rep.kind === 'spy' ? rep.name : rep.members.map((m) => m.name).join(' vs ')
-  return `${rep.kind === 'spy' ? 'Spy report' : 'Combat report'} on ${who}. ${RESULT[r] ?? r}`
+  const status = await sb('/rest/v1/rpc/add_intel', { method: 'POST', body: { p: rep }, token: await getToken() })
+  if (status === 'duplicate') return { lines: ['No new intel: this report was already added.'], updated: 0 }
+  const who = rep.kind === 'spy' ? [{ name: rep.name, id: rep.player_id, changes: techChanges(rep, rowFor(rep.player_id)) }]
+    : rep.members.map((m) => ({ name: m.name, id: m.player_id, changes: combatChanges(m, rowFor(m.player_id)) }))
+  const lines = []
+  let updated = 0
+  for (const w of who) {
+    if (status === 'older') lines.push(`No new intel on ${w.name}: we already have newer data.`)
+    else if (!rowFor(w.id)) { lines.push(`New player: ${w.name}.`); updated++ }
+    else if (!w.changes.length) lines.push(`No new intel on ${w.name}: same numbers as before.`)
+    else { lines.push(`Updated ${w.name}: ${w.changes.join(', ')}.`); updated++ }
+  }
+  await loadIntel() // so the next report in a batch compares against the new state
+  return { lines, updated }
 }
+const rowFor = (id) => intelRows.find((r) => String(r.player_id) === String(id))
 
 el('intel-go').onclick = async () => {
   const text = el('intel-paste').value.trim()
   if (!text) return (el('intel-msg').textContent = 'Paste a report first.')
   el('intel-go').disabled = true
   const lines = []
-  const show = () => (el('intel-msg').textContent = lines.join('\n'))
+  let updated = 0, read = 0 // read = reports that were understood and checked
+  const show = () => {
+    const uniq = [...new Set(lines)]
+    let head = updated ? `${updated} player${updated > 1 ? 's' : ''} updated` : read ? 'No new intel' : ''
+    if (uniq.length === 1 && uniq[0].startsWith(head) && !updated) head = '' // the line already says it
+    el('intel-msg').textContent = [head, ...uniq].filter(Boolean).join('\n')
+  }
+  const take = (r) => { lines.push(...r.lines); updated += r.updated; read++ }
   try {
     const ids = reportIds(text)
     if (ids) { // one or more report ids: look each one up
       for (const id of ids) {
         const rep = await fetchReport(id)
-        lines.push(rep.error ?? (await saveReport(rep)))
+        if (rep.error) lines.push(rep.error)
+        else take(await saveReport(rep))
         show()
       }
     } else { // a whole report page
       const rep = parseReport(text)
-      lines.push(rep.error ?? (await saveReport(rep)))
+      if (rep.error) lines.push(rep.error)
+      else take(await saveReport(rep))
     }
     el('intel-paste').value = ''
-    loadIntel()
   } catch (e) {
     if (e.status === 401) return logout()
     lines.push(e.message)
