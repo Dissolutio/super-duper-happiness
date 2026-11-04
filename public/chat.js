@@ -87,7 +87,7 @@ function showView(view) { // 'data', 'players' or a channel slug
   el('chat').hidden = !isChat
   el('landings-box').hidden = view !== 'targets'
   $('#views button').forEach((b) => b.classList.toggle('active', b.dataset.view === view))
-  if (view === 'players') loadIntel()
+  if (view === 'players') { loadIntel(); loadCalc() }
   if (!isChat) return
   el('msgs').innerHTML = ''
   poll()
