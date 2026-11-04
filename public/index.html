@@ -53,6 +53,7 @@
 
     <nav id="views">
       <button data-view="data" class="active">Data</button>
+      <button data-view="players">Players</button>
       <button data-view="general">General</button>
       <button data-view="targets">Targets</button>
     </nav>
@@ -75,6 +76,17 @@
       <section id="players"></section>
     </div>
 
+    <section id="intel" hidden>
+      <details id="intel-add" open>
+        <summary>+ Add a report</summary>
+        <p class="hint">Open a spy or combat report in the game (browser version). Right-click the report, Inspect, find the element with id messagedetails, then Copy, Copy outerHTML, and paste here.</p>
+        <textarea id="intel-paste" rows="3" placeholder="Paste the report here"></textarea>
+        <button id="intel-go">Read report</button>
+        <p id="intel-msg" class="say-result"></p>
+      </details>
+      <div id="intel-list"></div>
+    </section>
+
     <section id="chat" hidden>
       <div id="landings-box" hidden>
         <h2>Landings</h2>
@@ -91,7 +103,7 @@
               <select name="side"><option value="ours">Our attack</option><option value="theirs">Enemy incoming</option></select>
             </label>
             <div class="row3">
-              <label>Galaxy <input name="galaxy" type="number" inputmode="numeric" min="1" max="9"></label>
+              <label>Galaxy <input name="galaxy" type="number" inputmode="numeric" min="1" max="7"></label>
               <label>System <input name="system" type="number" inputmode="numeric" min="1" max="499"></label>
               <label>Planet <input name="position" type="number" inputmode="numeric" min="1" max="15"></label>
             </div>
@@ -138,6 +150,8 @@
   <script src="/chat.js"></script>
   <script src="/parse.js"></script>
   <script src="/landings.js"></script>
+  <script src="/reports.js"></script>
+  <script src="/intel.js"></script>
   <script src="/gate.js"></script>
 </body>
 </html>
