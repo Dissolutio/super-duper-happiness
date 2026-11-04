@@ -68,6 +68,27 @@ el('landings').onclick = async (e) => {
   }
 }
 
+// "Say it all in one go": parse the sentence and fill in the form. The person checks it and taps Add.
+el('say-fill').onclick = () => {
+  const r = parseLanding(el('say').value)
+  const f = el('landing-form').elements
+  f.side.value = r.side
+  if (r.galaxy) [f.galaxy.value, f.system.value, f.position.value] = [r.galaxy, r.system, r.position]
+  if (r.strength) f.strength.value = r.strength
+  if (r.hours || r.minutes) [f.hours.value, f.minutes.value] = [r.hours, r.minutes]
+  const heard = [
+    SIDE[r.side],
+    r.galaxy && `[${r.galaxy}:${r.system}:${r.position}]`,
+    r.strength,
+    (r.hours || r.minutes) && `lands in ${r.hours}h ${r.minutes}m`,
+  ].filter(Boolean).join(', ')
+  el('say-result').textContent = r.missing.length === 3
+    ? "Couldn't make sense of that. Please fill in the form below."
+    : r.missing.length
+    ? `Heard: ${heard}. Couldn't find: ${r.missing.join(', ')}. Please fill that in below.`
+    : `Heard: ${heard}. Check it below, then tap Add landing.`
+}
+
 el('landing-form').onsubmit = async (e) => {
   e.preventDefault()
   const f = e.target.elements
@@ -85,6 +106,7 @@ el('landing-form').onsubmit = async (e) => {
       body: { p_side: f.side.value, p_galaxy: galaxy, p_system: system, p_position: position, p_strength: strength, p_minutes: minutes },
     })
     e.target.reset()
+    el('say-result').textContent = ''
     el('landing-add').open = false
     loadLandings()
   } catch (err) {

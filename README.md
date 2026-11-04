@@ -35,3 +35,7 @@ Messages are plain text; `2:45:8` / `[2:45:8]` become tappable chips that open a
 
 Run `supabase/landings.sql` (after `schema.sql`). Pinned at the top of Targets: a list of fleets landing (ours or enemy incoming) with live
 countdowns in each viewer's timezone, and a collapsed "+ Add a landing" form. Arrival time is computed on the server (now + minutes from now).
+
+"Say it all in one go" (top of the add-landing form) uses `public/parse.js` to turn a sentence like
+`enemy 2 45 8, about 3 million, lands in 2 hours 15 minutes` into form fields. It only fills the form; the person checks and taps Add.
+Digits only (phone dictation writes "45" not "forty five").

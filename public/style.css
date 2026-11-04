@@ -102,3 +102,5 @@ button.remove { min-height: 32px; font-size: .8rem; padding: 0 10px; }
 #coord-nums b { font-size: 2.2rem; color: var(--a0); }
 .sheet-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
 .sheet-actions a { color: var(--dim); }
+#landing-form textarea { font: inherit; font-size: 16px; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; resize: none; }
+.say-result { margin: 0; color: var(--dim); font-size: .85rem; min-height: 1.2em; }
