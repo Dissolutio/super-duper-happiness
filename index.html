@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>DONUT vs PMA</title>
+  <style>
+    body { font-family: sans-serif; background: #111; color: #ddd; margin: 20px; }
+    button { padding: 6px 14px; }
+    .allies { display: flex; gap: 30px; flex-wrap: wrap; margin-top: 16px; }
+    table { border-collapse: collapse; }
+    th, td { padding: 3px 10px; text-align: right; border-bottom: 1px solid #333; }
+    th:first-child, td:first-child { text-align: left; }
+    h2 small { color: #888; font-weight: normal; }
+    .DONUT h2 { color: #f90; }
+    .PMA h2 { color: #f55; }
+    #status { color: #888; margin-left: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Alliance War</h1>
+  <button id="refresh">Refresh</button><span id="status"></span>
+  <div class="allies" id="out"></div>
+
+<script>
+// ---- config: alliance tags to track (case-insensitive) ----
+const ALLIES = ['DONUT', 'PMA']
+
+// ---- helpers ----
+async function getXml(path) {
+  const r = await fetch('/api/' + path)
+  if (!r.ok) throw new Error(path + ' -> ' + r.status)
+  return new DOMParser().parseFromString(await r.text(), 'text/xml')
+}
+const $ = (sel, root = document) => Array.from(root.querySelectorAll(sel))
+const num = (n) => Number(n).toLocaleString()
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+
+// highscore.xml -> { playerId: { position, score, ships } }
+function parseHighscore(doc) {
+  const out = {}
+  $('player', doc).forEach((p) => {
+    out[p.getAttribute('id')] = {
+      position: Number(p.getAttribute('position')),
+      score: Number(p.getAttribute('score')),
+      ships: Number(p.getAttribute('ships') || 0),
+    }
+  })
+  return out
+}
+
+// ---- load everything the API has that we care about ----
+async function load() {
+  const [players, alliances, total, military] = await Promise.all([
+    getXml('players.xml'),
+    getXml('alliances.xml'),
+    getXml('highscore.xml?category=1&type=0'), // player total points
+    getXml('highscore.xml?category=1&type=3'), // player military points (has ships count)
+  ])
+
+  // playerId -> { name, status }  (status flags: v=vacation, i=inactive, I=long inactive, b=banned, o=outlaw, a=admin)
+  const playerInfo = {}
+  $('player', players).forEach((p) => {
+    playerInfo[p.getAttribute('id')] = { name: p.getAttribute('name'), status: p.getAttribute('status') || '' }
+  })
+
+  const totalHs = parseHighscore(total)
+  const milHs = parseHighscore(military)
+
+  return ALLIES.map((tag) => {
+    const a = $('alliance', alliances).find((el) => el.getAttribute('tag').toLowerCase() === tag.toLowerCase())
+    if (!a) return { tag, members: [] }
+    const members = $('player', a).map((p) => {
+      const id = p.getAttribute('id')
+      return {
+        id,
+        name: playerInfo[id]?.name ?? '?',
+        status: playerInfo[id]?.status ?? '',
+        rank: totalHs[id]?.position ?? 9999,
+        points: totalHs[id]?.score ?? 0,
+        milPoints: milHs[id]?.score ?? 0,
+        ships: milHs[id]?.ships ?? 0,
+      }
+    })
+    members.sort((x, y) => x.rank - y.rank)
+    return { tag, name: a.getAttribute('name'), members, asOf: new Date(alliances.documentElement.getAttribute('timestamp') * 1000) }
+  })
+}
+
+// ---- render ----
+function render(allies) {
+  document.getElementById('out').innerHTML = allies.map((a) => {
+    if (!a.members.length) return `<div class="${a.tag}"><h2>${a.tag}</h2>alliance not found</div>`
+    const sum = (key) => a.members.reduce((s, m) => s + m[key], 0)
+    const rows = a.members.map((m) => `
+      <tr><td>${esc(m.name)} ${esc(m.status)}</td><td>#${m.rank}</td><td>${num(m.points)}</td><td>${num(m.milPoints)}</td><td>${num(m.ships)}</td></tr>`).join('')
+    return `
+      <div class="${esc(a.tag)}">
+        <h2>${esc(a.tag)} <small>${esc(a.name)} &middot; ${a.members.length} members</small></h2>
+        <table>
+          <tr><th>Player</th><th>Rank</th><th>Points</th><th>Military</th><th>Ships</th></tr>
+          ${rows}
+          <tr><th>Total</th><th></th><th>${num(sum('points'))}</th><th>${num(sum('milPoints'))}</th><th>${num(sum('ships'))}</th></tr>
+        </table>
+      </div>`
+  }).join('')
+}
+
+async function refresh() {
+  const status = document.getElementById('status')
+  status.textContent = 'loading...'
+  try {
+    const allies = await load()
+    render(allies)
+    status.textContent = 'alliance data from ' + (allies.find((a) => a.asOf)?.asOf.toLocaleString() ?? '?')
+  } catch (e) {
+    status.textContent = 'error: ' + e.message
+  }
+}
+
+document.getElementById('refresh').onclick = refresh
+refresh()
+</script>
+</body>
+</html>

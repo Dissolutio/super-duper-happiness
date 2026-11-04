@@ -1,0 +1,5 @@
+# On Netlify there is no server.js; this rewrite does the same job (same-origin proxy, so no CORS problem).
+[[redirects]]
+  from = "/api/*"
+  to = "https://s265-us.ogame.gameforge.com/api/:splat"
+  status = 200
