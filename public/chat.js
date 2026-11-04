@@ -40,6 +40,7 @@ function addMessages(rows, forceScroll) {
 async function poll() {
   const channel = chat.channel
   if (!channel || chat.busy) return
+  if (channel === 'targets') loadLandings()
   chat.busy = true
   try {
     const first = chat.lastId === 0
@@ -48,7 +49,7 @@ async function poll() {
     if (channel !== chat.channel) return // switched channels while waiting
     if (first) rows.reverse()
     if (rows.length) {
-      addMessages(rows, first)
+      addMessages(rows, first && channel !== 'targets') // Targets opens at the top so the landings are the first thing you see
       chat.lastId = rows[rows.length - 1].id
     }
     el('chat-msg').textContent = ''
@@ -66,6 +67,7 @@ function showView(view) { // 'data' or a channel slug
   chat.lastId = 0
   el('data').hidden = view !== 'data'
   el('chat').hidden = view === 'data'
+  el('landings-box').hidden = view !== 'targets'
   $('#views button').forEach((b) => b.classList.toggle('active', b.dataset.view === view))
   if (view === 'data') return
   el('msgs').innerHTML = ''

@@ -76,6 +76,32 @@
     </div>
 
     <section id="chat" hidden>
+      <div id="landings-box" hidden>
+        <h2>Landings</h2>
+        <div id="landings"></div>
+        <details id="landing-add">
+          <summary>+ Add a landing</summary>
+          <form id="landing-form">
+            <label>Type
+              <select name="side"><option value="ours">Our attack</option><option value="theirs">Enemy incoming</option></select>
+            </label>
+            <div class="row3">
+              <label>Galaxy <input name="galaxy" type="number" inputmode="numeric" min="1" max="9"></label>
+              <label>System <input name="system" type="number" inputmode="numeric" min="1" max="499"></label>
+              <label>Planet <input name="position" type="number" inputmode="numeric" min="1" max="15"></label>
+            </div>
+            <label>Fleet size (rough guess is fine)
+              <input name="strength" type="text" maxlength="40" placeholder="e.g. 3M points, or 200 battleships">
+            </label>
+            <div class="row3">
+              <label>Lands in: hours <input name="hours" type="number" inputmode="numeric" min="0" max="168"></label>
+              <label>minutes <input name="minutes" type="number" inputmode="numeric" min="0" max="59"></label>
+            </div>
+            <button type="submit">Add landing</button>
+            <p id="landing-msg" class="msg"></p>
+          </form>
+        </details>
+      </div>
       <div id="msgs"></div>
       <p id="chat-msg" class="msg"></p>
       <form id="chat-form">
@@ -89,6 +115,7 @@
   <script src="/auth.js"></script>
   <script src="/app.js"></script>
   <script src="/chat.js"></script>
+  <script src="/landings.js"></script>
   <script src="/gate.js"></script>
 </body>
 </html>
