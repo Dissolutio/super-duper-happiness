@@ -88,6 +88,7 @@ function showView(view) { // 'data', 'players' or a channel slug
   el('landings-box').hidden = view !== 'targets'
   $('#views button').forEach((b) => b.classList.toggle('active', b.dataset.view === view))
   if (typeof closePlayer === 'function') closePlayer()
+  if (view === 'targets') loadCalc() // owners of planets, for the landings
   if (view === 'players') {
     loadIntel()
     loadCalc()

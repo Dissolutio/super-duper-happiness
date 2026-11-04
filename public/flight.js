@@ -46,6 +46,7 @@ function buildWorld(universe, players, serverData, alliances) {
     factor: { peaceful: num('speedFleetPeaceful', 1), war: num('speedFleetWar', 1) },
     sys: new Map(), // "g:s" -> { planets, active }
     byPlayer: new Map(), // player id -> [{ coords, name, moon }]
+    at: new Map(), // "g:s:p" -> owner player id
     players: [...players.querySelectorAll('player')].map((p) => ({
       id: p.getAttribute('id'), name: p.getAttribute('name'), status: p.getAttribute('status') ?? '', alliance: tagOf[p.getAttribute('alliance')] ?? '',
     })),
@@ -57,11 +58,16 @@ function buildWorld(universe, players, serverData, alliances) {
     s.planets++
     if (!/[iI]/.test(status[owner] ?? '')) s.active++ // i / I = inactive; vacation alone still counts
     world.sys.set(key, s)
+    world.at.set(coords, owner)
     if (!world.byPlayer.has(owner)) world.byPlayer.set(owner, [])
     world.byPlayer.get(owner).push({ coords, name: pl.getAttribute('name'), moon: !!pl.querySelector('moon') })
   }
+  world.byId = new Map(world.players.map((p) => [p.id, p]))
   return world
 }
+
+// who owns the planet or moon at these coordinates ("1:98:5"), or undefined: { id, name, status, alliance }
+const ownerAt = (world, coords) => world.byId.get(world.at.get(coords))
 
 async function loadWorld() {
   const [u, p, s, a] = await Promise.all([getXml('universe.xml'), getXml('players.xml'), getXml('serverData.xml'), getXml('alliances.xml')])
