@@ -7,6 +7,16 @@ const STATUS = { v: 'vacation', i: 'inactive', I: 'long inactive', b: 'banned', 
 const $ = (sel, root = document) => Array.from(root.querySelectorAll(sel))
 const el = (id) => document.getElementById(id)
 const num = (n) => Math.round(Number(n)).toLocaleString()
+// 208000 -> "208K", 3800000 -> "3.8M", 38200000 -> "38M", 999 -> "999"
+function short(n) {
+  n = Math.round(Number(n))
+  if (Math.abs(n) < 1000) return String(n)
+  const units = ['K', 'M', 'B', 'T']
+  let v = n, i = -1
+  do { v /= 1000; i++ } while (Math.abs(v) >= 999.95 && i < units.length - 1) // 999.96K is really 1M
+  const text = Math.abs(v) < 100 ? v.toFixed(1).replace(/\.0$/, '') : String(Math.round(v))
+  return text + units[i]
+}
 // everything that came from the API goes through esc() before touching innerHTML
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
 
@@ -97,7 +107,7 @@ function renderSummary(allies) {
     const vals = allies.map((a) => (a.members.length ? fn(a) : null))
     const known = vals.filter((v) => v !== null)
     const target = best === 'high' ? Math.max(...known) : best === 'low' ? Math.min(...known) : null
-    const cells = vals.map((v) => `<td class="${v !== null && v === target && known.length > 1 ? 'win' : ''}">${v === null ? '–' : (label === 'Alliance rank' ? '#' : '') + num(v)}</td>`).join('')
+    const cells = vals.map((v) => `<td class="${v !== null && v === target && known.length > 1 ? 'win' : ''}">${v === null ? '–' : (label === 'Alliance rank' ? '#' + num(v) : short(v))}</td>`).join('')
     return `<tr><th>${label}</th>${cells}</tr>`
   }).join('')
   el('summary').innerHTML = `<table><thead><tr><th></th>${head}</tr></thead><tbody>${rows}</tbody></table>`
@@ -119,11 +129,11 @@ function renderPlayers() {
       <div class="card c${state.active}">
         <div class="top"><span class="name">${esc(m.name)}${badges}</span><span class="rank">#${m.rank === 99999 ? '–' : num(m.rank)}</span></div>
         <dl>
-          <div><dt>Points</dt><dd>${num(m.points)}</dd></div>
-          <div><dt>Eco</dt><dd>${num(m.eco)}</dd></div>
-          <div><dt>Res</dt><dd>${num(m.res)}</dd></div>
-          <div><dt>Mil</dt><dd>${num(m.milPoints)}</dd></div>
-          <div><dt>Ships</dt><dd>${num(m.ships)}</dd></div>
+          <div><dt>Points</dt><dd>${short(m.points)}</dd></div>
+          <div><dt>Eco</dt><dd>${short(m.eco)}</dd></div>
+          <div><dt>Res</dt><dd>${short(m.res)}</dd></div>
+          <div><dt>Mil</dt><dd>${short(m.milPoints)}</dd></div>
+          <div><dt>Ships</dt><dd>${short(m.ships)}</dd></div>
         </dl>
       </div>`
   }).join('')

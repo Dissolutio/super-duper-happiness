@@ -104,3 +104,7 @@ button.remove { min-height: 32px; font-size: .8rem; padding: 0 10px; }
 .sheet-actions a { color: var(--dim); }
 #landing-form textarea { font: inherit; font-size: 16px; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; resize: none; }
 .say-result { margin: 0; color: var(--dim); font-size: .85rem; min-height: 1.2em; }
+
+/* chat dividers: day changes and long quiet spells */
+.divider { display: flex; align-items: center; gap: 10px; color: var(--dim); font-size: .75rem; margin: 6px 0 -2px; }
+.divider::before, .divider::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
