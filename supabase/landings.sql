@@ -7,7 +7,7 @@ create table public.landings (
   id         bigint generated always as identity primary key,
   author     uuid not null references public.profiles (id),
   side       text not null check (side in ('ours', 'theirs')),  -- ours = our attack, theirs = enemy incoming
-  galaxy     smallint not null check (galaxy between 1 and 9),
+  galaxy     smallint not null check (galaxy between 1 and 7),
   system     smallint not null check (system between 1 and 499),
   position   smallint not null check (position between 1 and 15),
   strength   text not null check (char_length(strength) between 1 and 40),

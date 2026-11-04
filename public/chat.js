@@ -2,7 +2,7 @@
 // Needs auth.js (sb, getToken) and app.js (el, esc, $). Channels are the buttons in #views (see index.html).
 const POLL_MS = 4000
 const GAME_URL = 'https://s265-us.ogame.gameforge.com/game/index.php'
-const MAX_GALAXY = 9 // coordinates outside 1-9 : 1-499 : 1-15 are left as plain text
+const MAX_GALAXY = 7 // Jishui has 7 galaxies (serverData.xml)
 
 const chat = { channel: null, lastId: 0, busy: false, timer: null, lastTime: null } // lastTime = when the newest message shown was sent
 
@@ -76,16 +76,19 @@ async function poll() {
   }
 }
 
-function showView(view) { // 'data' or a channel slug
+function showView(view) { // 'data', 'players' or a channel slug
+  const isChat = view !== 'data' && view !== 'players'
   clearInterval(chat.timer)
-  chat.channel = view === 'data' ? null : view
+  chat.channel = isChat ? view : null
   chat.lastId = 0
   chat.lastTime = null
   el('data').hidden = view !== 'data'
-  el('chat').hidden = view === 'data'
+  el('intel').hidden = view !== 'players'
+  el('chat').hidden = !isChat
   el('landings-box').hidden = view !== 'targets'
   $('#views button').forEach((b) => b.classList.toggle('active', b.dataset.view === view))
-  if (view === 'data') return
+  if (view === 'players') loadIntel()
+  if (!isChat) return
   el('msgs').innerHTML = ''
   poll()
   chat.timer = setInterval(() => !document.hidden && poll(), POLL_MS)

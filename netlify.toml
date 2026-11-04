@@ -7,6 +7,13 @@
   to = "https://s265-us.ogame.gameforge.com/api/:splat"
   status = 200
 
+# Report lookup by ID. ":id" matches exactly one path segment, so only /ogapi/v1/report/<id>/true is passed on.
+# (Netlify can't check the ID's shape; the app checks it before asking, and the data is re-validated by the database.)
+[[redirects]]
+  from = "/ogapi/v1/report/:id/true"
+  to = "https://ogapi.faw-kes.de/v1/report/:id/true"
+  status = 200
+
 # Security headers for every page. Any new outside host (like Supabase) must be listed in connect-src.
 [[headers]]
   for = "/*"
