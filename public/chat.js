@@ -4,7 +4,7 @@ const POLL_MS = 4000
 const GAME_URL = 'https://s265-us.ogame.gameforge.com/game/index.php'
 const MAX_GALAXY = 9 // coordinates outside 1-9 : 1-499 : 1-15 are left as plain text
 
-const chat = { channel: null, lastId: 0, busy: false, timer: null }
+const chat = { channel: null, lastId: 0, busy: false, timer: null, lastTime: null } // lastTime = when the newest message shown was sent
 
 // A tappable [g:s:p] chip. Tapping it opens the coordinate card (see bottom of this file).
 const coordChip = (g, s, p) => `<button type="button" class="coord" data-g="${g}" data-s="${s}" data-p="${p}">[${g}:${s}:${p}]</button>`
@@ -22,20 +22,33 @@ function renderBody(text) {
     .replace(/\n/g, '<br>')
 }
 
-// shows the time for today's messages, date + time for older ones, in the viewer's own timezone
-function when(iso) {
-  const d = new Date(iso)
-  const t = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  return d.toDateString() === new Date().toDateString() ? t : d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + t
+const timeOf = (d) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+// A line to put above a message, or '' for none: a day label when the day changes,
+// or "5h later" after a long quiet spell (2 hours or more) on the same day.
+function dividerLabel(time, prev) {
+  if (!prev || time.toDateString() !== prev.toDateString()) {
+    const yesterday = new Date(Date.now() - 86400000)
+    if (time.toDateString() === new Date().toDateString()) return 'Today'
+    if (time.toDateString() === yesterday.toDateString()) return 'Yesterday'
+    return time.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
+  }
+  const hours = Math.floor((time - prev) / 3600000)
+  return hours >= 2 ? `${hours}h later` : ''
 }
 
 function addMessages(rows, forceScroll) {
   const nearBottom = innerHeight + scrollY >= document.body.scrollHeight - 80
-  el('msgs').insertAdjacentHTML('beforeend', rows.map((m) => `
+  el('msgs').insertAdjacentHTML('beforeend', rows.map((m) => {
+    const time = new Date(m.created_at)
+    const label = dividerLabel(time, chat.lastTime)
+    chat.lastTime = time
+    return `${label ? `<div class="divider"><span>${esc(label)}</span></div>` : ''}
     <div class="msg-row ${m.author === me.user.id ? 'mine' : ''}">
-      <div class="meta"><b>${esc(m.profiles?.display_name ?? '?')}</b> <time>${esc(when(m.created_at))}</time></div>
+      <div class="meta"><b>${esc(m.profiles?.display_name ?? '?')}</b> <time>${esc(timeOf(time))}</time></div>
       <div class="body">${renderBody(m.body)}</div>
-    </div>`).join(''))
+    </div>`
+  }).join(''))
   if (forceScroll || nearBottom) scrollTo(0, document.body.scrollHeight)
 }
 
@@ -67,6 +80,7 @@ function showView(view) { // 'data' or a channel slug
   clearInterval(chat.timer)
   chat.channel = view === 'data' ? null : view
   chat.lastId = 0
+  chat.lastTime = null
   el('data').hidden = view !== 'data'
   el('chat').hidden = view === 'data'
   el('landings-box').hidden = view !== 'targets'
