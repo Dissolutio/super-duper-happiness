@@ -114,3 +114,13 @@ button.remove { min-height: 32px; font-size: .8rem; padding: 0 10px; }
 #intel-paste { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; resize: none; }
 #intel-list { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); margin-top: 12px; }
 #intel-msg { white-space: pre-line; }
+
+/* Flight calculator */
+#calc, #intel-add { margin-bottom: 12px; }
+#calc label, #intel-add label { display: block; margin-top: 8px; font-size: .85rem; color: var(--dim); }
+#calc input, #calc select { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+#calc .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#calc .row3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
+#calc .row4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.fc-result { margin: 10px 0 0; font-size: 1.1rem; }

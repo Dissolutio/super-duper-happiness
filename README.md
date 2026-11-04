@@ -55,3 +55,10 @@ The app asks `/ogapi/v1/report/<id>/true`, which `server.js` / `netlify.toml` pa
 (operator named on its imprint page; it logs requests for up to 30 days, so it can see which reports we look up and who spied on whom).
 Accepted precautions: only the exact id shape is passed on, the answer must carry the id we asked for, everything is re-validated by `add_intel()`,
 and profile cards say "(looked up by id)". The pasted-page route sends nothing outside our own system, so use it for anything sensitive.
+
+## Flight calculator (Players tab)
+`public/flight.js` is the maths, `public/calc.js` the screen. Pick From and To (type coordinates, or look up a player's planets and tap one), a ship, mission and speed,
+and whose tech to use: anyone we have a spy report on (drives and lifeform speed fill in), or type your own. Settings are remembered in this browser.
+- Formula and server rules (fleet speed 8 peaceful / 1 war, wraparound, empty and inactive systems skipped, target system always counts) are read from `serverData.xml`, `universe.xml` and `players.xml`.
+- Checked against four real in-game recycler times (21m58s / 31m23s deployment, 19m54s / 28m25s transport), all exact.
+- A fleet flies at its slowest ship, so the calculator takes one ship. Universe data is up to a week old, so a route can be off by a system near new or changed planets.

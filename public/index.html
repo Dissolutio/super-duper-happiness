@@ -77,7 +77,34 @@
     </div>
 
     <section id="intel" hidden>
-      <details id="intel-add" open>
+      <details id="calc" open>
+        <summary>Flight calculator</summary>
+        <div class="row2">
+          <label>From <input id="fc-from" type="text" inputmode="text" placeholder="1:98:5" autocomplete="off"></label>
+          <label>To <input id="fc-to" type="text" placeholder="1:118:8" autocomplete="off"></label>
+        </div>
+        <label>Look up a player's planets (tap one to fill the field you last used)
+          <input id="fc-player" type="text" list="fc-names" placeholder="player name" autocomplete="off">
+        </label>
+        <datalist id="fc-names"></datalist>
+        <div id="fc-planets" class="chips"></div>
+        <div class="row3">
+          <label>Ship <select id="fc-ship"></select></label>
+          <label>Mission <select id="fc-mission"><option value="peaceful">Peaceful</option><option value="war">War</option></select></label>
+          <label>Speed <select id="fc-pct"></select></label>
+        </div>
+        <p class="hint">Peaceful = deploy and transport (8x faster on this server). War = attack and spy.</p>
+        <label>Whose tech <select id="fc-who"><option value="">Typed in below</option></select></label>
+        <div class="row4">
+          <label>Combustion <input id="fc-comb" type="number" inputmode="numeric" min="0" max="50"></label>
+          <label>Impulse <input id="fc-imp" type="number" inputmode="numeric" min="0" max="50"></label>
+          <label>Hyperspace <input id="fc-hyper" type="number" inputmode="numeric" min="0" max="50"></label>
+          <label>Lifeform speed % <input id="fc-lf" type="number" inputmode="decimal" step="0.001" min="-100" max="1000"></label>
+        </div>
+        <p id="fc-result" class="fc-result"></p>
+      </details>
+
+      <details id="intel-add">
         <summary>+ Add a report</summary>
         <p class="hint"><b>Easy (phone or computer):</b> open the report, tap the key icon, copy the id that starts with sr-us-265- (or cr-us-265-) and paste it here. You can paste several, one per line. The id is looked up at a third-party service (ogapi.faw-kes.de), which can see it.</p>
         <p class="hint"><b>Private:</b> on a computer, Inspect the report, find the element with id messagedetails, Copy, Copy outerHTML, and paste that instead. Nothing leaves our own system.</p>
@@ -153,6 +180,8 @@
   <script src="/landings.js"></script>
   <script src="/reports.js"></script>
   <script src="/intel.js"></script>
+  <script src="/flight.js"></script>
+  <script src="/calc.js"></script>
   <script src="/gate.js"></script>
 </body>
 </html>
