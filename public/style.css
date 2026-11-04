@@ -1,0 +1,44 @@
+/* Mobile first. Ally 0 (us) = orange, ally 1 (enemy) = red. */
+:root { --bg: #16161c; --card: #20202a; --line: #33333f; --text: #e6e6ee; --dim: #8a8a9a; --a0: #f5a03c; --a1: #ff5a5a; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.4 system-ui, sans-serif;
+  padding: env(safe-area-inset-top) calc(12px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
+}
+header { display: flex; justify-content: space-between; align-items: center; }
+h1 { font-size: 1.3rem; margin: 12px 0 4px; }
+button, select { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 8px; min-height: 44px; padding: 0 14px; }
+#refresh { font-size: 1.4rem; width: 44px; padding: 0; }
+#status { color: var(--dim); font-size: .8rem; margin: 0 0 12px; }
+
+/* summary: label | us | them */
+#summary table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 10px; overflow: hidden; }
+#summary th, #summary td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--line); }
+#summary th:first-child, #summary td:first-child { text-align: left; color: var(--dim); font-weight: normal; }
+#summary thead th { font-size: 1.1rem; }
+#summary td.win { font-weight: bold; }
+.c0 { color: var(--a0); }
+.c1 { color: var(--a1); }
+
+/* tabs + sort */
+#tabs { display: flex; gap: 8px; margin: 16px 0 8px; }
+#tabs button { flex: 1; font-weight: bold; }
+#tabs button.active.c0 { border-color: var(--a0); background: #3a2a14; }
+#tabs button.active.c1 { border-color: var(--a1); background: #3a1717; }
+.sort { display: block; color: var(--dim); font-size: .85rem; margin-bottom: 8px; }
+.sort select { margin-left: 8px; }
+
+/* player cards */
+#players { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.card { background: var(--card); border-radius: 10px; padding: 10px 12px; border-left: 4px solid var(--line); }
+.card.c0 { border-left-color: var(--a0); color: var(--text); }
+.card.c1 { border-left-color: var(--a1); color: var(--text); }
+.card .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.card .name { font-weight: bold; overflow-wrap: anywhere; }
+.card .rank { color: var(--dim); }
+.card dl { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin: 6px 0 0; text-align: center; font-size: .85rem; }
+.card dt { color: var(--dim); font-size: .7rem; }
+.card dd { margin: 0; }
+.badge { font-size: .65rem; background: var(--line); border-radius: 4px; padding: 1px 5px; margin-left: 4px; vertical-align: middle; font-weight: normal; }
+.empty { color: var(--dim); }
