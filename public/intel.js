@@ -1,6 +1,6 @@
 // Players screen: what we know about each player from pasted reports.
 // A newer report always replaces older data (decided in the database, see supabase/intel.sql).
-// Needs auth.js (sb, getToken), app.js (el, esc), reports.js (parseReport) and gate.js (logout).
+// Needs auth.js (sb, getToken), app.js (el, esc), reports.js (parseReport, reportIds, fetchReport) and gate.js (logout).
 
 const SHIPS = { 202: 'Small cargo', 209: 'Recycler', 204: 'Light fighter', 207: 'Battleship', 219: 'Pathfinder' }
 
@@ -40,12 +40,15 @@ function renderIntel(rows) {
           <div><dt>Shields</dt><dd>${lv(110)}</dd></div>
           <div><dt>Armour</dt><dd>${lv(111)}</dd></div>
         </dl>
-        ${r.tech_at ? `<div class="hint">Tech from a spy report ${ago(r.tech_at)}</div>` : '<div class="hint">No spy report yet</div>'}
+        ${r.tech_at ? `<div class="hint">Tech from a spy report ${ago(r.tech_at)}${VIA[r.tech_via] ?? ''}</div>` : '<div class="hint">No spy report yet</div>'}
         ${bonus ? `<div class="hint">Lifeform speed: ${bonus}</div>` : ''}
-        ${r.combat_at ? `<div class="hint">Last fight ${ago(r.combat_at)}: weapons ${esc(c.weapon ?? '?')}%, shields ${esc(c.shield ?? '?')}%, armour ${esc(c.armor ?? '?')}%</div>` : ''}
+        ${r.combat_at ? `<div class="hint">Last fight ${ago(r.combat_at)}${VIA[r.combat_via] ?? ''}: weapons ${esc(c.weapon ?? '?')}%, shields ${esc(c.shield ?? '?')}%, armour ${esc(c.armor ?? '?')}%</div>` : ''}
       </div>`
   }).join('')
 }
+
+// reports looked up by id come from a third-party service, so say so
+const VIA = { id: ' (looked up by id)' }
 
 const RESULT = {
   added: 'Saved.',
@@ -53,23 +56,38 @@ const RESULT = {
   duplicate: 'That report was already added.',
 }
 
+// save one parsed report, returns a sentence for the user
+async function saveReport(rep) {
+  const r = await sb('/rest/v1/rpc/add_intel', { method: 'POST', body: { p: rep }, token: await getToken() })
+  const who = rep.kind === 'spy' ? rep.name : rep.members.map((m) => m.name).join(' vs ')
+  return `${rep.kind === 'spy' ? 'Spy report' : 'Combat report'} on ${who}. ${RESULT[r] ?? r}`
+}
+
 el('intel-go').onclick = async () => {
-  const msg = (t) => (el('intel-msg').textContent = t)
   const text = el('intel-paste').value.trim()
-  if (!text) return msg('Paste a report first.')
-  const rep = parseReport(text)
-  if (rep.error) return msg(rep.error)
+  if (!text) return (el('intel-msg').textContent = 'Paste a report first.')
   el('intel-go').disabled = true
+  const lines = []
+  const show = () => (el('intel-msg').textContent = lines.join('\n'))
   try {
-    const r = await sb('/rest/v1/rpc/add_intel', { method: 'POST', body: { p: rep }, token: await getToken() })
-    const who = rep.kind === 'spy' ? rep.name : rep.members.map((m) => m.name).join(' vs ')
-    msg(`${rep.kind === 'spy' ? 'Spy report' : 'Combat report'} on ${who}. ${RESULT[r] ?? r}`)
+    const ids = reportIds(text)
+    if (ids) { // one or more report ids: look each one up
+      for (const id of ids) {
+        const rep = await fetchReport(id)
+        lines.push(rep.error ?? (await saveReport(rep)))
+        show()
+      }
+    } else { // a whole report page
+      const rep = parseReport(text)
+      lines.push(rep.error ?? (await saveReport(rep)))
+    }
     el('intel-paste').value = ''
     loadIntel()
   } catch (e) {
     if (e.status === 401) return logout()
-    msg(e.message)
+    lines.push(e.message)
   } finally {
+    show()
     el('intel-go').disabled = false
   }
 }

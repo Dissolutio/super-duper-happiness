@@ -79,8 +79,9 @@
     <section id="intel" hidden>
       <details id="intel-add" open>
         <summary>+ Add a report</summary>
-        <p class="hint">Open a spy or combat report in the game (browser version). Right-click the report, Inspect, find the element with id messagedetails, then Copy, Copy outerHTML, and paste here.</p>
-        <textarea id="intel-paste" rows="3" placeholder="Paste the report here"></textarea>
+        <p class="hint"><b>Easy (phone or computer):</b> open the report, tap the key icon, copy the id that starts with sr-us-265- (or cr-us-265-) and paste it here. You can paste several, one per line. The id is looked up at a third-party service (ogapi.faw-kes.de), which can see it.</p>
+        <p class="hint"><b>Private:</b> on a computer, Inspect the report, find the element with id messagedetails, Copy, Copy outerHTML, and paste that instead. Nothing leaves our own system.</p>
+        <textarea id="intel-paste" rows="3" placeholder="Paste a report id, or a whole report page"></textarea>
         <button id="intel-go">Read report</button>
         <p id="intel-msg" class="say-result"></p>
       </details>

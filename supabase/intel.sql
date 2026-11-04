@@ -16,9 +16,11 @@ create table public.player_intel (
   -- spy report: lifeform ship-speed bonus in percent, keyed by ship id (202 small cargo ... 219 pathfinder)
   speed_bonus     jsonb not null default '{}',
   tech_at         timestamptz,
+  tech_via        text,        -- 'html' (page pasted from the game) or 'id' (looked up from a report id, third-party service)
   -- combat report: weapons/shields/armour in percent as used in that fight
   combat_pct      jsonb not null default '{}',
   combat_at       timestamptz,
+  combat_via      text,
   updated_at      timestamptz not null default now()
 );
 
@@ -60,12 +62,14 @@ declare
   v_name text;
   m      jsonb;
   v_stale boolean := true;
+  v_via  text := coalesce(p ->> 'via', 'html');
 begin
   if not public.is_member() then raise exception 'not allowed'; end if;
   if v_kind not in ('spy', 'combat') then raise exception 'unknown report type'; end if;
   if v_hash !~ '^(sr|cr)-[a-z]{2}-[0-9]{1,4}-[0-9a-f]{40}$' then raise exception 'bad report id'; end if;
   v_at := to_timestamp((p ->> 'at')::bigint);
   if v_at > now() + interval '1 hour' or v_at < now() - interval '60 days' then raise exception 'report time looks wrong'; end if;
+  if v_via not in ('html', 'id') then raise exception 'bad source'; end if;
   if char_length(p::text) > 20000 then raise exception 'report too big'; end if;
 
   if exists (select 1 from public.intel_reports where hash = v_hash) then return 'duplicate'; end if;
@@ -74,15 +78,15 @@ begin
     v_id := (p ->> 'player_id')::bigint;
     v_name := left(trim(p ->> 'name'), 40);
     if v_id is null or v_id < 1 or v_name is null or v_name = '' then raise exception 'report has no player'; end if;
-    insert into public.player_intel as t (player_id, name, character_class, tech, speed_bonus, tech_at)
+    insert into public.player_intel as t (player_id, name, character_class, tech, speed_bonus, tech_at, tech_via)
     values (v_id, v_name, left(p ->> 'class', 30),
             public.clean_numbers(p -> 'tech', array['106','108','109','110','111','115','117','118'], 0, 100),
             public.clean_numbers(p -> 'speed_bonus', array['202','203','204','205','206','207','208','209','210','211','213','214','215','218','219'], -100, 1000),
-            v_at)
+            v_at, v_via)
     on conflict (player_id) do update
       set name = excluded.name, character_class = excluded.character_class,
           tech = t.tech || excluded.tech, speed_bonus = t.speed_bonus || excluded.speed_bonus,  -- a thin report only overrides what it shows
-          tech_at = excluded.tech_at, updated_at = now()
+          tech_at = excluded.tech_at, tech_via = excluded.tech_via, updated_at = now()
       where t.tech_at is null or t.tech_at < excluded.tech_at;
     v_stale := not found;
   else
@@ -90,10 +94,10 @@ begin
       v_id := (m ->> 'player_id')::bigint;
       v_name := left(trim(m ->> 'name'), 40);
       continue when v_id is null or v_id < 1 or v_name is null or v_name = '';
-      insert into public.player_intel as t (player_id, name, combat_pct, combat_at)
-      values (v_id, v_name, public.clean_numbers(m -> 'pct', array['weapon','shield','armor'], 0, 2000), v_at)
+      insert into public.player_intel as t (player_id, name, combat_pct, combat_at, combat_via)
+      values (v_id, v_name, public.clean_numbers(m -> 'pct', array['weapon','shield','armor'], 0, 2000), v_at, v_via)
       on conflict (player_id) do update
-        set combat_pct = excluded.combat_pct, combat_at = excluded.combat_at, updated_at = now()
+        set combat_pct = excluded.combat_pct, combat_at = excluded.combat_at, combat_via = excluded.combat_via, updated_at = now()
         where t.combat_at is null or t.combat_at < excluded.combat_at;
       if found then v_stale := false; end if;
     end loop;
@@ -107,3 +111,7 @@ end $$;
 revoke execute on function public.add_intel(jsonb) from public, anon;
 grant  execute on function public.add_intel(jsonb) to authenticated;
 revoke execute on function public.clean_numbers(jsonb, text[], numeric, numeric) from public, anon, authenticated;
+
+-- Already ran the first version of this file? Run just this instead, then re-run the "create function public.add_intel" block above
+-- (change "create function" to "create or replace function"):
+--   alter table public.player_intel add column if not exists tech_via text, add column if not exists combat_via text;

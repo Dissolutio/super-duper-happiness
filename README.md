@@ -42,9 +42,16 @@ Digits only (phone dictation writes "45" not "forty five").
 
 ## Players (intel from pasted reports)
 Run `supabase/intel.sql` in the Supabase SQL editor (after `schema.sql`). On the Players tab, paste an opened spy or combat report
-(browser OGame: Inspect the report, copy the `messagedetails` element's outerHTML). The app reads it in your browser
+(browser OGame: Inspect the report, copy the `messagedetails` element's outerHTML), **or just paste report ids** (see below). The app reads it in your browser
 (`public/reports.js`) and sends a small summary to the database through `add_intel()`; the raw page is never stored.
 
 - One profile per in-game player, friend or enemy. Spy reports give drive/combat tech and the lifeform ship-speed bonuses; combat reports give weapons/shields/armour percentages.
 - A newer report overrides only the values it shows (a thin report with few probes leaves older values alone). The same report pasted twice is ignored.
 - The app never talks to the game; it only reads what you paste.
+
+### Report ids (easy for phone users)
+In the game, a report's key icon shows an id like `sr-us-265-<40 hex>` (spy) or `cr-us-265-<40 hex>` (combat). Paste one or several (one per line).
+The app asks `/ogapi/v1/report/<id>/true`, which `server.js` / `netlify.toml` pass on to **ogapi.faw-kes.de**, a private third-party service
+(operator named on its imprint page; it logs requests for up to 30 days, so it can see which reports we look up and who spied on whom).
+Accepted precautions: only the exact id shape is passed on, the answer must carry the id we asked for, everything is re-validated by `add_intel()`,
+and profile cards say "(looked up by id)". The pasted-page route sends nothing outside our own system, so use it for anything sensitive.
