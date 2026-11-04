@@ -134,13 +134,14 @@
             <button type="button" id="say-fill">Fill in the form from this</button>
             <p id="say-result" class="say-result"></p>
             <label>Type
-              <select name="side"><option value="ours">Our attack</option><option value="theirs">Enemy incoming</option></select>
+              <select name="side"><option value="ours">Our attack</option><option value="move">Fleet move (our own planet)</option><option value="theirs">Enemy incoming</option></select>
             </label>
             <div class="row3">
               <label>Galaxy <input name="galaxy" type="number" inputmode="numeric" min="1" max="7"></label>
               <label>System <input name="system" type="number" inputmode="numeric" min="1" max="499"></label>
               <label>Planet <input name="position" type="number" inputmode="numeric" min="1" max="15"></label>
             </div>
+            <p id="landing-hint" class="say-result"></p>
             <label>Fleet size (rough guess is fine)
               <input name="strength" type="text" maxlength="40" placeholder="e.g. 3M points, or 200 battleships">
             </label>

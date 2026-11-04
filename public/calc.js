@@ -31,6 +31,7 @@ async function loadCalc() {
   }
   recalc()
   if (typeof renderRoster === 'function') renderRoster() // alliance lists need the universe data
+  if (typeof landings !== 'undefined' && landings.length) renderLandings() // planet owners on the landings
 }
 
 // the "whose tech" menu lists everyone we have a spy report on; called by intel.js whenever the list reloads
