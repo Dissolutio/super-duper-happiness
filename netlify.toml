@@ -1,5 +1,23 @@
+[build]
+  publish = "public"
+
 # On Netlify there is no server.js; this rewrite does the same job (same-origin proxy, so no CORS problem).
 [[redirects]]
   from = "/api/*"
   to = "https://s265-us.ogame.gameforge.com/api/:splat"
   status = 200
+
+# Security headers for every page. If you add a new outside host (e.g. Supabase), it must be added to connect-src.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+    X-Frame-Options = "DENY"
+
+# The service worker must never be cached by the browser, or updates get stuck.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
