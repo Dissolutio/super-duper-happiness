@@ -6,15 +6,17 @@ const MAX_GALAXY = 9 // coordinates outside 1-9 : 1-499 : 1-15 are left as plain
 
 const chat = { channel: null, lastId: 0, busy: false, timer: null }
 
+// A tappable [g:s:p] chip. Tapping it opens the coordinate card (see bottom of this file).
+const coordChip = (g, s, p) => `<button type="button" class="coord" data-g="${g}" data-s="${s}" data-p="${p}">[${g}:${s}:${p}]</button>`
+
 // Message text -> safe HTML. Everything is escaped FIRST, then we add our own tags:
-//   2:45:8 or [2:45:8]  -> link to that spot in the galaxy view
+//   2:45:8 or [2:45:8]  -> tappable coordinate chip
 //   @name               -> highlighted mention
 function renderBody(text) {
   return esc(text)
     .replace(/\[?\b(\d):(\d{1,3}):(\d{1,2})\b\]?/g, (m, g, s, p) => {
       if (g < 1 || g > MAX_GALAXY || s < 1 || s > 499 || p < 1 || p > 15) return m
-      const url = `${GAME_URL}?page=ingame&amp;component=galaxy&amp;galaxy=${g}&amp;system=${s}&amp;position=${p}`
-      return `<a class="coord" href="${url}" target="_blank" rel="noopener noreferrer">[${g}:${s}:${p}]</a>`
+      return coordChip(g, s, p)
     })
     .replace(/@([\w.-]{2,32})/g, '<span class="mention">@$1</span>')
     .replace(/\n/g, '<br>')
@@ -107,3 +109,32 @@ el('chat-input').onkeydown = (e) => {
   if (e.key === 'Enter' && !e.shiftKey && !matchMedia('(pointer: coarse)').matches) { e.preventDefault(); send() }
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) poll() })
+
+// ---- coordinate card: big separate numbers (the game app has one box each), tap one to copy it ----
+const coordSheet = el('coord-sheet')
+
+document.addEventListener('click', (e) => {
+  const chip = e.target.closest('button.coord')
+  if (!chip) return
+  const [g, s, p] = [chip.dataset.g, chip.dataset.s, chip.dataset.p].map(Number)
+  el('cn-g').textContent = g
+  el('cn-s').textContent = s
+  el('cn-p').textContent = p
+  el('coord-copied').textContent = ''
+  el('coord-open').href = `${GAME_URL}?page=ingame&component=galaxy&galaxy=${g}&system=${s}&position=${p}`
+  coordSheet.showModal()
+})
+
+el('coord-nums').onclick = async (e) => {
+  const b = e.target.closest('button')
+  if (!b) return
+  const value = b.querySelector('b').textContent
+  try {
+    await navigator.clipboard.writeText(value)
+    el('coord-copied').textContent = `Copied ${value}`
+  } catch {
+    el('coord-copied').textContent = 'Could not copy, just type it in.'
+  }
+}
+el('coord-close').onclick = () => coordSheet.close()
+coordSheet.onclick = (e) => { if (e.target === coordSheet) coordSheet.close() } // tap outside the card

@@ -111,6 +111,22 @@
     </section>
   </div>
 
+  <dialog id="coord-sheet">
+    <div class="sheet-body">
+      <p class="sheet-title">Tap a number to copy it</p>
+      <div id="coord-nums">
+        <button type="button"><small>Galaxy</small><b id="cn-g"></b></button>
+        <button type="button"><small>System</small><b id="cn-s"></b></button>
+        <button type="button"><small>Planet</small><b id="cn-p"></b></button>
+      </div>
+      <p id="coord-copied" class="msg"></p>
+      <div class="sheet-actions">
+        <a id="coord-open" target="_blank" rel="noopener noreferrer">Open in browser</a>
+        <button type="button" id="coord-close">Close</button>
+      </div>
+    </div>
+  </dialog>
+
   <script src="/config.js"></script>
   <script src="/auth.js"></script>
   <script src="/app.js"></script>
