@@ -128,7 +128,19 @@
 
     <section id="map" hidden>
       <nav id="map-tabs"></nav>
-      <svg id="map-svg" viewBox="0 0 400 400" role="img" aria-label="War map"></svg>
+      <input id="map-find" list="map-find-list" type="search" placeholder="Find a player or coordinates (1:99:10)" autocomplete="off" enterkeyhint="search">
+      <datalist id="map-find-list"></datalist>
+      <div id="map-stage">
+        <svg id="map-svg" viewBox="0 0 400 400" role="img" aria-label="War map"></svg>
+        <svg id="map-mini" viewBox="0 0 400 400" aria-label="Overview: tap to jump there" hidden></svg>
+        <div id="map-ctl">
+          <button type="button" id="map-full" aria-label="Full screen">&#x26F6;</button>
+          <button type="button" id="map-in" aria-label="Zoom in">+</button>
+          <button type="button" id="map-out" aria-label="Zoom out">&minus;</button>
+          <button type="button" id="map-reset" aria-label="Show everything" hidden>&#x21BA;</button>
+        </div>
+        <span id="map-zoom"></span>
+      </div>
       <p id="map-legend" class="hint"></p>
       <p id="map-hint" class="hint"></p>
       <div id="map-info"></div>
@@ -233,6 +245,7 @@
       <details>
         <summary>The map</summary>
         <p>Map shows the whole universe: the 7 galaxies sit in a ring (galaxy 7 is next to galaxy 1). Tap a galaxy, or a number, to open it. In a galaxy the systems run around the ring, and a planet's number is how far out it sits (1 inside, 15 outside). Orange is us, red is the second alliance (change it with the alliance box on Players), moons are the small light dots. Tap a planet to see who owns it. Arrows are flights with a known launch planet, in the flight colours.</p>
+        <p>Zoom with two fingers, a double-tap or the + and - buttons (up to 12x), and drag to move. Names appear as you zoom in, and the top-left corner shows which systems you are looking at. The small map in the corner shows where you are; tap it to jump. The square button makes the map full screen. Type a player name or coordinates in the box above the map to jump straight there.</p>
         <p>Tap a planet that has a moon to record a jump gate and its phalanx level. Gates get a green ring, and the gates of one player are joined by a dotted line. A phalanx level shows a green wedge of the systems it can scan (level squared minus 1, each way), plus a list of the enemy planets inside it. Everyone sees what anyone saves. A pasted spy report on a moon fills these in by itself (when the probes could see its buildings).</p>
       </details>
       <details>
