@@ -481,6 +481,10 @@ function zoomBy(f) {
 el('map-in').onclick = () => zoomBy(2)
 el('map-out').onclick = () => zoomBy(0.5)
 el('map-reset').onclick = () => { resetView(); drawMap() }
+// leave full screen (used before jumping to a player page, which a full-screen map would cover)
+function closeFullMap() {
+  if (el('map').classList.contains('full')) el('map-full').click()
+}
 el('map-full').onclick = () => {
   const on = el('map').classList.toggle('full')
   el('map-full').innerHTML = on ? '&#x2715;' : '&#x26F6;'
@@ -545,7 +549,7 @@ function showPicked() {
   const level = MAP.preview ?? known?.phalanx
   box.innerHTML = `
     <div class="card"><div class="top"><span class="name">${esc(pl?.name ?? '?')}${pl?.moon ? ' &#9790;' : ''}</span>${coordChip(g, s, p)}</div>
-    <p class="hint">${esc(o?.name ?? '?')}${o?.alliance ? ` (${esc(o.alliance)})` : ''} · ${world.byPlayer.get(sel)?.length ?? 0} planets</p>
+    <p class="hint">${o ? playerLink(o.id, o.name) : '?'}${o?.alliance ? ` (${esc(o.alliance)})` : ''} · ${world.byPlayer.get(sel)?.length ?? 0} planets</p>
     ${pl?.moon ? `
       <div class="moon-form">
         <label class="check"><input type="checkbox" id="moon-gate" ${known?.gate ? 'checked' : ''}> Has a jump gate</label>
@@ -554,7 +558,7 @@ function showPicked() {
       </div>
       <p id="map-msg" class="msg"></p>
       <div id="moon-report">${moonReport(MAP.selected, level)}</div>` : '<p id="map-msg" class="msg"></p>'}
-    <button type="button" id="map-player" data-id="${esc(sel)}">Open player</button></div>`
+    </div>`
 }
 
 const moonReport = (coords, level) => (level != null ? phalanxReport(coords, level) : '<p class="hint">Enter a phalanx level to see what it can scan.</p>')
@@ -566,7 +570,7 @@ function phalanxReport(coords, level) {
   const hit = mapPlanets().filter((x) => x.g === g && x.owner !== world.at.get(coords) && sysDistance(x.s, s) <= range)
   const them = hit.filter((x) => mapSide(x.owner) === 1)
   const ours = hit.filter((x) => mapSide(x.owner) === 0)
-  const list = them.slice(0, 15).map((x) => `<div class="planet-row">${coordChip(x.g, x.s, x.p)} <span>${esc(x.name)} (${esc(world.byId.get(x.owner)?.name ?? '?')})</span></div>`).join('')
+  const list = them.slice(0, 15).map((x) => `<div class="planet-row">${coordChip(x.g, x.s, x.p)} <span>${esc(x.name)} (${playerLink(x.owner, world.byId.get(x.owner)?.name ?? '?')})</span></div>`).join('')
   return `<p class="hint">Level ${level}: sees ${range} system${range === 1 ? '' : 's'} each way. ${hit.length} planet${hit.length === 1 ? '' : 's'} in range: ${ours.length} ${esc(ALLIES[0])}, ${them.length} ${esc(slotTag(ALLIES[1]))}, ${hit.length - ours.length - them.length} others.</p>${list}${them.length > 15 ? `<p class="hint">...and ${them.length - 15} more.</p>` : ''}`
 }
 
@@ -593,11 +597,6 @@ el('map-info').onclick = async (e) => {
     }
     return
   }
-  const b = e.target.closest('#map-player')
-  if (!b) return
-  if (el('map').classList.contains('full')) el('map-full').click()
-  showView('players')
-  openPlayer(b.dataset.id)
 }
 // typing a level shows its reach straight away, before it is saved
 el('map-info').oninput = (e) => {
