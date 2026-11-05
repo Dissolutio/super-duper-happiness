@@ -51,7 +51,8 @@ function combatChanges(m, row) {
 
 // save one parsed report. Returns { lines, updated } where updated = how many players got new intel
 async function saveReport(rep) {
-  const status = await sb('/rest/v1/rpc/add_intel', { method: 'POST', body: { p: rep }, token: await getToken() })
+  const { moon, ...intel } = rep // the moon part goes to its own table below
+  const status = await sb('/rest/v1/rpc/add_intel', { method: 'POST', body: { p: intel }, token: await getToken() })
   if (status === 'duplicate') return { lines: ['No new intel: this report was already added.'], updated: 0 }
   const who = rep.kind === 'spy' ? [{ name: rep.name, id: rep.player_id, changes: techChanges(rep, rowFor(rep.player_id)) }]
     : rep.members.map((m) => ({ name: m.name, id: m.player_id, changes: combatChanges(m, rowFor(m.player_id)) }))
@@ -62,6 +63,20 @@ async function saveReport(rep) {
     else if (!rowFor(w.id)) { lines.push(`New player: ${w.name}.`); updated++ }
     else if (!w.changes.length) lines.push(`No new intel on ${w.name}: same numbers as before.`)
     else { lines.push(`Updated ${w.name}: ${w.changes.join(', ')}.`); updated++ }
+  }
+  if (moon) {
+    const [g, sy, p] = [moon.galaxy, moon.system, moon.position]
+    const what = `phalanx ${moon.phalanx}${moon.gate ? ', jump gate' : ', no jump gate'}`
+    try {
+      const r = await sb('/rest/v1/rpc/set_moon_seen', { method: 'POST', token: await getToken(), body: { p_galaxy: g, p_system: sy, p_position: p, p_gate: moon.gate, p_phalanx: moon.phalanx, p_seen_at: rep.at } })
+      if (r === 'older') lines.push(`No new intel on moon [${g}:${sy}:${p}]: we already have a newer report.`)
+      else if (r === 'same') lines.push(`No new intel on moon [${g}:${sy}:${p}]: ${what}, as before.`)
+      else { lines.push(`Moon [${g}:${sy}:${p}]: ${what}.`); updated++ }
+    } catch (e) {
+      if (e.status === 401) throw e
+      lines.push(`Could not save the moon [${g}:${sy}:${p}]: ${e.message}`)
+    }
+    if (typeof MAP !== 'undefined') MAP.moons = new Map() // the map reloads moons when it opens
   }
   await loadIntel() // so the next report in a batch compares against the new state
   return { lines, updated }
