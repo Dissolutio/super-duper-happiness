@@ -51,7 +51,7 @@ function combatChanges(m, row) {
 
 // save one parsed report. Returns { lines, updated } where updated = how many players got new intel
 async function saveReport(rep) {
-  const { moon, ...intel } = rep // the moon part goes to its own table below
+  const { moon, scan, ...intel } = rep // the moon and scan parts go to their own tables below
   const status = await sb('/rest/v1/rpc/add_intel', { method: 'POST', body: { p: intel }, token: await getToken() })
   if (status === 'duplicate') return { lines: ['No new intel: this report was already added.'], updated: 0 }
   const who = rep.kind === 'spy' ? [{ name: rep.name, id: rep.player_id, changes: techChanges(rep, rowFor(rep.player_id)) }]
@@ -77,6 +77,18 @@ async function saveReport(rep) {
       lines.push(`Could not save the moon [${g}:${sy}:${p}]: ${e.message}`)
     }
     if (typeof MAP !== 'undefined') MAP.moons = new Map() // the map reloads moons when it opens
+  }
+  if (scan) {
+    const where = `[${scan.galaxy}:${scan.system}:${scan.position}]${scan.moon ? ' moon' : ''}`
+    try {
+      const r = await sb('/rest/v1/rpc/add_scan', { method: 'POST', token: await getToken(), body: { p_galaxy: scan.galaxy, p_system: scan.system, p_position: scan.position, p_moon: scan.moon, p_player: scan.player_id, p_fleet: scan.fleet, p_defense: scan.defense, p_seen_at: rep.at } })
+      if (r === 'older') lines.push(`No new scan of ${where}: we already have a newer report.`)
+      else { lines.push(`Scan ${where}: ships worth ${shortNum(scan.fleet / 1000)} points, defence ${shortNum(scan.defense / 1000)}.`); updated++ }
+      if (typeof MAP !== 'undefined') MAP.scans = null // the map reloads scans when it opens
+    } catch (e) {
+      if (e.status === 401) throw e
+      lines.push(`Could not save the scan of ${where}: ${e.message}`)
+    }
   }
   await loadIntel() // so the next report in a batch compares against the new state
   return { lines, updated }
