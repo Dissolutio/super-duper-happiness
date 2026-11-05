@@ -118,3 +118,6 @@ The Map tab (`public/map.js`) draws the universe from the same OGame data as the
 because the server wraps galaxies). Galaxy view: the 499 systems around a ring (system 499 touches system 1), a planet's distance from the middle is its planet number.
 Orange = DONUT, red = the alliance in the second roster tab, moons are small dots, and flights with a known launch planet are arrows coloured by category.
 Needs no database change.
+
+Moons: run `supabase/moons.sql` once. Tap a planet that has a moon, tick "Has a jump gate" and/or enter its phalanx level, and save (stored in `moons`, readable by approved members, written only through `set_moon()`).
+Gates are drawn as green rings joined by dotted lines per owner; a phalanx level draws the systems it reaches (level squared minus 1, each way, wrapping round the galaxy) and lists the second alliance's planets in range. Until the SQL is run the map still works, only saving moons fails.
