@@ -212,28 +212,33 @@ const mapDefs = (px) => ['alert', 'opportunity', 'info']
 
 // ---- drawing ----
 
-// Names next to planets once zoomed in. Most important first (found player, picked player, us, them, others), and a name is
-// skipped if its spot on screen is already taken, so they never pile on top of each other.
-function mapLabels(items, px, u) {
+// Names next to planets once zoomed in. Drawn on their own layer in screen pixels (not inside the zoomed map), because
+// browsers enforce a minimum font size: tiny text inside a scaled-up map gets bumped up first and then magnified with the map.
+// Most important first (found player, picked player, us, them, others); a name is skipped if its spot on screen is taken.
+function mapLabels(items, b) {
   const k = MAP.view.k
   if (k < 3.5) return ''
   const rank = (x) => (x.owner === MAP.find ? 0 : x.owner === MAP.picked ? 1 : [2, 3, 5, 6][mapSide(x.owner)])
-  const allow = k >= 7 ? 6 : k >= 5 ? 5 : 3 // which ranks get a name at this zoom
-  const taken = new Set()
-  const cell = (sx, sy) => `${Math.floor(sx / 70)}:${Math.floor(sy / 13)}`
-  const b = viewBox()
-  let out = ''
+  const allow = k >= 8 ? 6 : k >= 5 ? 3 : 2 // 3.5x: us and the picked player; 5x: them too; 8x: everyone
+  const W = b.w / b.u, H = b.h / b.u
+  // places a name must not cover: the buttons (top right), the zoom text (top left) and the overview (bottom left)
+  const placed = [[W - 60, 0, W, 240], [0, 0, 190, 24], [0, H - 110, 110, H]]
+  const free = (r) => placed.every((q) => r[2] < q[0] || r[0] > q[2] || r[3] < q[1] || r[1] > q[3])
+  let out = '', n = 0
   const sorted = items.filter((x) => rank(x) <= allow).sort((a, z) => rank(a) - rank(z))
-  for (const x of sorted.slice(0, 400)) {
+  for (const x of sorted) {
+    if (n >= 45) break // more than this is noise on a phone screen
     if (!world.byId.has(x.owner)) continue // owner not in the daily player list yet
-    const sx = (x.x - b.x) / u + 7, sy = (x.y - b.y) / u
-    const c1 = cell(sx, sy), c2 = cell(sx + 60, sy)
-    if (taken.has(c1) || taken.has(c2)) continue
-    taken.add(c1); taken.add(c2)
-    const who = world.byId.get(x.owner)?.name ?? '?'
-    out += `<text class="m-label ${SIDE_CLASS[mapSide(x.owner)]}" x="${f2(x.x + px(7))}" y="${f2(x.y + px(3.5))}">${esc(who.length > 12 ? who.slice(0, 11) + '…' : who)}</text>`
+    const sx = (x.x - b.x) / b.u + 8, sy = (x.y - b.y) / b.u + 4
+    const name = world.byId.get(x.owner).name
+    const label = name.length > 12 ? name.slice(0, 11) + '…' : name
+    const r = [sx - 2, sy - 13, sx + label.length * 7.2 + 2, sy + 4] // rough box of the text at 11-12px
+    if (r[0] < 0 || r[1] < 0 || r[2] > W || r[3] > H || !free(r)) continue
+    placed.push(r)
+    n++
+    out += `<text class="m-label ${SIDE_CLASS[mapSide(x.owner)]}" x="${f1(sx)}" y="${f1(sy)}">${esc(label)}</text>`
   }
-  return out ? `<g style="font-size:${f2(px(10.5))}px;stroke-width:${f2(px(3))}px">${out}</g>` : ''
+  return out
 }
 
 function drawMap() {
@@ -247,7 +252,7 @@ function drawMap() {
   const near = (x, y) => k < 2 || (x > b.x - b.w && x < b.x + 2 * b.w && y > b.y - b.h && y < b.y + 2 * b.h)
   const dotPx = (base) => base * Math.pow(k, 0.45) // dots grow on screen a little as you zoom, so they stay tappable
   const list = mapPlanets()
-  let body = ''
+  let body = '', text = '' // text: drawn on the screen-pixel layer
   const shown = [] // planets drawn, with their position, for the names
   if (MAP.galaxy === 0) {
     for (let g = 1; g <= world.galaxies; g++) {
@@ -277,7 +282,7 @@ function drawMap() {
         body += `<line class="m-tick" x1="${f2(x1)}" y1="${f2(y1)}" x2="${f2(x2)}" y2="${f2(y2)}"/>`
         if (major) {
           const [tx, ty] = polar(200, 200, r0 + dir * px(14), s)
-          body += `<text class="m-num" x="${f2(tx)}" y="${f2(ty + px(3))}" style="font-size:${f2(px(9))}px">${s}</text>`
+          text += `<text class="m-num" x="${f1((tx - b.x) / u)}" y="${f1((ty - b.y) / u + 3)}">${s}</text>`
         }
       }
     }
@@ -302,7 +307,11 @@ function drawMap() {
       body += '</g>'
     }
   }
-  svgEl().innerHTML = `<defs>${mapDefs(px)}</defs>${body}${mapGates(px)}${mapArrows()}${mapLabels(shown, px, u)}`
+  svgEl().innerHTML = `<defs>${mapDefs(px)}</defs>${body}${mapGates(px)}${mapArrows()}`
+  const t = el('map-text')
+  t.setAttribute('viewBox', `0 0 ${f1(b.w / u)} ${f1(b.h / u)}`)
+  t.innerHTML = text + mapLabels(shown, b)
+  t.style.visibility = ''
   drawMini()
   applyView()
 }
@@ -390,6 +399,7 @@ svgEl().addEventListener('pointermove', (e) => {
     MAP.view.cy = s.at[1] - (mid[1] - r.top - r.height / 2) * u
   }
   clampView()
+  el('map-text').style.visibility = 'hidden' // names would be in the wrong place until the redraw
   requestAnimationFrame(applyView)
 })
 function pointerEnd(e) {
@@ -415,6 +425,7 @@ svgEl().addEventListener('pointercancel', pointerEnd)
 svgEl().addEventListener('wheel', (e) => {
   e.preventDefault()
   zoomAt(MAP.view.k * Math.exp(-e.deltaY * 0.0025), e.clientX, e.clientY)
+  el('map-text').style.visibility = 'hidden'
   applyView()
   redrawSoon()
 }, { passive: false })
