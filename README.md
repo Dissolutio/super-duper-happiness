@@ -121,3 +121,7 @@ Needs no database change.
 
 Moons: run `supabase/moons.sql` once. Tap a planet that has a moon, tick "Has a jump gate" and/or enter its phalanx level, and save (stored in `moons`, readable by approved members, written only through `set_moon()`).
 Gates are drawn as green rings joined by dotted lines per owner; a phalanx level draws the systems it reaches (level squared minus 1, each way, wrapping round the galaxy) and lists the second alliance's planets in range. Until the SQL is run the map still works, only saving moons fails.
+
+Moons from spy reports: a spy report on a moon that shows its buildings (pasted page or report id) sets that moon's phalanx level (building 42) and jump gate (building 43)
+through `set_moon_seen()`. Only a report newer than what we already know counts (`observed_at`); typed-in values count as seen "now". If you ran `moons.sql` before this existed, run `supabase/moons-reports.sql` once.
+Until then a moon report still updates the player, and the paste result says the moon could not be saved.

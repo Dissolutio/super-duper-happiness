@@ -19,6 +19,14 @@ function parseReport(text) {
   return { error: 'Only spy reports and combat reports are understood so far.' }
 }
 
+// A spy report on a MOON that shows its buildings tells us its phalanx level and whether it has a jump gate
+// (building ids 42 = sensor phalanx, 43 = jump gate; planet type 3 = moon). Null for a planet, or when the buildings were hidden.
+function moonFrom(coords, type, levels) {
+  const m = String(coords).match(/^([1-7]):(\d{1,3}):(\d{1,2})$/)
+  if (type !== 3 || !m || !levels || !Object.keys(levels).length) return null
+  return { galaxy: Number(m[1]), system: Number(m[2]), position: Number(m[3]), gate: Number(levels[43] ?? 0) > 0, phalanx: Number(levels[42] ?? 0) }
+}
+
 function parseSpy(doc, a, json) {
   const research = json('research') ?? {}
   const tech = {}
@@ -38,6 +46,7 @@ function parseSpy(doc, a, json) {
     speed_bonus: shipSpeedBonus(doc),
     fleet_value: Number(a('fleetvalue')) || 0,
     defense_value: Number(a('defensevalue')) || 0,
+    moon: moonFrom(a('coordinates'), Number(a('targetplanettype')), json('buildings')),
   }
   if (!out.player_id || !out.name || !out.at) return { error: 'The report is missing the player or the time.' }
   return out
@@ -117,10 +126,12 @@ function spyFromJson(id, j) {
   for (const [ship, b] of Object.entries(j.details?.lifeformBonuses?.BaseStatsBooster ?? {})) {
     if (/^2\d\d$/.test(ship) && typeof b.speed === 'number') speed_bonus[ship] = Math.round(b.speed * 100000) / 1000 // 0.05166 -> 5.166 (%)
   }
+  const levels = g.failed_buildings ? null : Object.fromEntries((j.details?.buildings ?? []).map((b) => [b.building_type, b.level]))
   return {
     kind: 'spy', via: 'id', hash: id, at: g.event_timestamp,
     player_id: g.defender_user_id, name: g.defender_name, class: CLASS_NAMES[g.defender_character_class_id] ?? null,
     coords: g.defender_planet_coordinates, tech, speed_bonus,
+    moon: moonFrom(g.defender_planet_coordinates, g.defender_planet_type, levels),
   }
 }
 
