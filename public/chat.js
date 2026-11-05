@@ -77,18 +77,20 @@ async function poll() {
 }
 
 function showView(view) { // 'data', 'players' or a channel slug
-  const isChat = view !== 'data' && view !== 'players'
+  const isChat = !['data', 'players', 'map'].includes(view)
   clearInterval(chat.timer)
   chat.channel = isChat ? view : null
   chat.lastId = 0
   chat.lastTime = null
   el('data').hidden = view !== 'data'
   el('intel').hidden = view !== 'players'
+  el('map').hidden = view !== 'map'
   el('chat').hidden = !isChat
   el('landings-box').hidden = view !== 'targets'
   $('#views button').forEach((b) => b.classList.toggle('active', b.dataset.view === view))
   if (typeof closePlayer === 'function') closePlayer()
   if (view === 'targets') loadCalc() // owners of planets, for the landings
+  if (view === 'map') openMap()
   if (view === 'players') {
     loadIntel()
     loadCalc()
