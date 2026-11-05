@@ -31,3 +31,17 @@ main { padding: 0 12px; }
 #list .row { display: flex; justify-content: space-between; gap: 10px; width: 100%; padding: 10px 12px; margin-bottom: 6px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; color: var(--text); font: inherit; text-align: left; }
 #list .row span:last-child { color: var(--dim); font-size: .85rem; white-space: nowrap; }
 footer { padding: 4px 16px 24px; color: var(--dim); font-size: .75rem; }
+
+/* crawl theme: System messages, achievements, quest box */
+.sys { margin: 0 0 2px; font: 700 .7rem/1.2 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .14em; color: #7ee0b5; }
+h1 { text-shadow: 0 0 18px #f5a03c55; }
+#recruit { margin: 8px 12px 4px; padding: 12px 14px; background: linear-gradient(135deg, #2a1d0c, #20202a 60%); border: 1px solid var(--a0); border-radius: 12px; box-shadow: 0 0 0 1px #f5a03c22, 0 0 24px #f5a03c22 inset; }
+#recruit h2 { margin: 2px 0 6px; font-size: 1.25rem; color: var(--a0); }
+#recruit p { margin: 0 0 6px; }
+#recruit .how { font-size: .9rem; color: #cfcfdc; margin: 0; }
+#recruit .sys { color: #ffd166; }
+.note { margin: -4px 0 10px; color: var(--dim); font-size: .85rem; }
+#list .row .rk { color: var(--a0); font-family: ui-monospace, Menlo, monospace; margin-right: 8px; }
+#toast { position: fixed; left: 50%; bottom: 18px; transform: translate(-50%, 140%); max-width: min(92vw, 420px); padding: 10px 14px; background: #101018f2; border: 1px solid #7ee0b5; border-radius: 10px; color: var(--text); font-size: .9rem; box-shadow: 0 6px 30px #000a; transition: transform .25s ease; pointer-events: none; z-index: 5; }
+#toast.on { transform: translate(-50%, 0); }
+#toast .sys { color: #7ee0b5; }
