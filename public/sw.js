@@ -18,3 +18,23 @@ self.addEventListener('fetch', (e) => {
       .catch(() => caches.match(e.request))
   )
 })
+
+// Notifications. The server sends { title, body, tag, url } already encrypted for this device.
+// A visible notification must be shown for every push (browsers require it), so we always show one.
+self.addEventListener('push', (e) => {
+  let d = {}
+  try { d = e.data.json() } catch { /* empty or unreadable message: show the generic one */ }
+  e.waitUntil(self.registration.showNotification(String(d.title || 'DONUT War Room'), {
+    body: String(d.body || 'Something new. Open the app.'),
+    tag: d.tag ? String(d.tag) : undefined,
+    icon: '/icon-192.png',
+    data: { url: '/' }, // always our own front page, whatever the message said
+  }))
+})
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close()
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((open) => (open.length ? open[0].focus() : clients.openWindow('/')))
+  )
+})

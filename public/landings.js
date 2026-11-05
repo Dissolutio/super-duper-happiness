@@ -141,6 +141,7 @@ el('landing-form').onsubmit = async (e) => {
       method: 'POST', token: await getToken(),
       body: { p_side: f.side.value, p_galaxy: galaxy, p_system: system, p_position: position, p_strength: strength, p_minutes: minutes },
     })
+    notifyOthers('landing')
     e.target.reset()
     el('say-result').textContent = ''
     el('landing-hint').textContent = ''

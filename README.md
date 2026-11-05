@@ -67,3 +67,26 @@ and whose tech to use: anyone we have a spy report on (drives and lifeform speed
 Add a report (open, ready to paste) comes first, then the flight calculator (closed), then the roster: Known players, one tab per alliance in `ALLIES` (shows how many members have a spy report), and a search box for any player in the universe.
 Tap a player for their page: tech, lifeform speed, last fight, and every known planet with a tappable coordinate and the flight time from the calculator's From box.
 After a paste the app says how many players were updated, or "No new intel" (already added, nothing changed, or we already hold newer data).
+
+## Alerts (push notifications)
+Phones and computers get a notification for: an enemy landing, one of our attacks or fleet moves, or someone writing `@yourname` in chat. Each device picks what it wants (Alerts button, top right).
+The message is encrypted on our server for that one device, so Google/Apple/Mozilla's push services only pass along something they can't read.
+
+How it works: the app saves each device's push address (`supabase/push.sql`). After someone adds a landing or an @mention, their app asks our Netlify function (`netlify/functions/notify.mjs`) to tell the others.
+The function checks the caller's login, looks up what they just added in the database (the caller can't choose the text), sends once per landing/message, and only to real push-service addresses.
+`netlify/lib/push.mjs` is the encryption, written with Node's built-in crypto and checked against the example in RFC 8291.
+
+### One-time setup
+1. Run `supabase/push.sql` in the Supabase SQL editor.
+2. On your own computer: `node scripts/vapid.mjs`. It prints a PUBLIC and a PRIVATE key.
+3. Put the PUBLIC key in `public/config.js` as `VAPID_PUBLIC_KEY` and commit it (it is meant to be public).
+4. In Netlify > Site configuration > Environment variables, add (mark the secret ones as secret):
+   - `SUPABASE_URL` = the project URL (same as config.js)
+   - `SUPABASE_PUBLISHABLE_KEY` = the publishable key (same as config.js)
+   - `SUPABASE_SECRET_KEY` = a secret key from Supabase > Project Settings > API Keys. **Secret: only here, never in the repo or any chat.** If it ever leaks, delete it in Supabase and make a new one.
+   - `VAPID_PUBLIC_KEY` = the PUBLIC key from step 2
+   - `VAPID_PRIVATE_KEY` = the PRIVATE key from step 2. **Secret, same rules.**
+5. Deploy again (Netlify only applies new variables to a new deploy).
+6. In the app: Alerts, pick what you want, Turn on, Send a test. On iPhone the app must first be added to the Home Screen.
+
+Not covered yet: reminders before a landing arrives (e.g. "lands in 10 minutes"). That needs a scheduled job.

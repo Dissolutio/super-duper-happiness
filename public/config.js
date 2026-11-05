@@ -2,3 +2,7 @@
 // NEVER put the secret / service_role key or the database password in this repo.
 const SUPABASE_URL = 'https://wcihwuagdrbdohiyrfei.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_GUmqeu_1KZrIInpIfRPwRA_I1lWLf6y'
+
+// Notifications: the PUBLIC half of the push key pair (from `node scripts/vapid.mjs`). Empty = alerts are off.
+// The private half lives only in the Netlify settings.
+const VAPID_PUBLIC_KEY = ''
