@@ -46,6 +46,7 @@
     <header>
       <h1>War Room</h1>
       <span>
+        <button id="help-btn" aria-label="Help">?</button>
         <button id="notify-btn">Alerts</button>
         <button id="rename">Name</button>
         <button id="signout">Sign out</button>
@@ -166,6 +167,36 @@
     </section>
   </div>
 
+  <dialog id="help-sheet">
+    <div class="sheet-body">
+      <p class="sheet-title">How to use the War Room</p>
+      <details open>
+        <summary>Install it on your phone</summary>
+        <p><b>iPhone</b> (needs iOS 16.4 or newer): open the site in Safari, tap Share, then "Add to Home Screen". Open it from the new icon from now on.</p>
+        <p><b>Android</b>: open the site in Chrome, tap the menu (three dots), then "Add to Home screen" or "Install app".</p>
+      </details>
+      <details>
+        <summary>Get alerts</summary>
+        <p>Tap Alerts, choose what you want, tap Turn on, and say Allow when the phone asks. On iPhone this only works from the Home Screen icon, not from a Safari tab.</p>
+        <p>Nothing arrives? iPhone: Settings, Notifications, War Room, Allow Notifications. Android: Settings, Apps, Chrome (or the app), Notifications. Focus and Do Not Disturb modes silence alerts. Then turn alerts off and on again in the app.</p>
+      </details>
+      <details>
+        <summary>Share a spy or combat report</summary>
+        <p>In OGame, open the report and copy its report ID (it starts with sr- or cr-). Paste it into the report box on the Players screen (a whole report page works too). Everyone then sees that player's tech, and flight times use it.</p>
+      </details>
+      <details>
+        <summary>Players and planets</summary>
+        <p>Players shows everyone we have a report on. The DONUT and PMA tabs list those alliances. The box under them swaps the PMA tab for any alliance. Tap a player for their tech and planets.</p>
+        <p>The line on each card shows planets left to right, galaxy 1 to 7. A blue dot is a moon. The star is the capital (our guess: the oldest planet).</p>
+      </details>
+      <details>
+        <summary>Log a landing</summary>
+        <p>On Targets, fill in the landing form, or type one sentence like "enemy 2 45 8, about 3 million, lands in 2 hours" and tap "Fill in the form from this". Alerts go to everyone who turned them on.</p>
+      </details>
+      <div class="sheet-actions"><button type="button" id="help-close">Close</button></div>
+    </div>
+  </dialog>
+
   <dialog id="notify-sheet">
     <div class="sheet-body">
       <p class="sheet-title">Alerts on this device</p>
@@ -212,6 +243,7 @@
   <script src="/calc.js"></script>
   <script src="/player.js"></script>
   <script src="/notify.js"></script>
+  <script src="/help.js"></script>
   <script src="/gate.js"></script>
 </body>
 </html>

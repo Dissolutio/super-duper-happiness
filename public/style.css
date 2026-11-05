@@ -95,8 +95,8 @@ button.remove { min-height: 32px; font-size: .8rem; padding: 0 10px; }
 .landing.landed { opacity: .55; }
 
 /* coordinate card (bottom sheet) */
-#coord-sheet, #notify-sheet { margin: auto auto 0; width: 100%; max-width: 480px; padding: 0; border: 1px solid var(--line); border-radius: 16px 16px 0 0; background: var(--bg); color: var(--text); }
-#coord-sheet::backdrop, #notify-sheet::backdrop { background: rgba(0, 0, 0, .6); }
+#coord-sheet, #notify-sheet, #help-sheet { margin: auto auto 0; width: 100%; max-width: 480px; padding: 0; border: 1px solid var(--line); border-radius: 16px 16px 0 0; background: var(--bg); color: var(--text); }
+#coord-sheet::backdrop, #notify-sheet::backdrop, #help-sheet::backdrop { background: rgba(0, 0, 0, .6); }
 .sheet-body { padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); }
 .sheet-title { color: var(--dim); margin: 0 0 12px; text-align: center; }
 #coord-nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -156,3 +156,10 @@ button.remove { min-height: 32px; font-size: .8rem; padding: 0 10px; }
 .ps-planet { fill: var(--text); }
 .ps-moon { fill: #6cc4ff; }
 .ps-star { fill: #f5c542; }
+
+/* Help dialog */
+#help-sheet details { border-bottom: 1px solid var(--line); padding: 8px 0; }
+#help-sheet summary { cursor: pointer; font-weight: bold; min-height: 32px; display: flex; align-items: center; }
+#help-sheet p { margin: 6px 0; line-height: 1.4; }
+#help-sheet .sheet-body { max-height: 80vh; overflow-y: auto; }
+#help-btn { min-width: 44px; padding: 0; font-weight: bold; }
