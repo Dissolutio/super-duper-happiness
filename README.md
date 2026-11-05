@@ -90,3 +90,7 @@ The function checks the caller's login, looks up what they just added in the dat
 6. In the app: Alerts, pick what you want, Turn on, Send a test. On iPhone the app must first be added to the Home Screen.
 
 Not covered yet: reminders before a landing arrives (e.g. "lands in 10 minutes"). That needs a scheduled job.
+
+## Players: other alliances and planet strips
+
+The box under the roster tabs takes any alliance tag or name (autocomplete). That alliance takes the PMA tab; clear the box to get PMA back. Each card shows all of a player's planets left to right, galaxy 1 to 7, with a small dot for each moon. The star marks the capital. The OGame API does not say which planet is the capital, so we guess the oldest one (lowest planet id).

@@ -36,7 +36,11 @@ function shipSpeed(ship, tech, lfPct = 0) {
 function buildWorld(universe, players, serverData, alliances) {
   const num = (tag, fallback) => Number(serverData.querySelector(tag)?.textContent ?? fallback)
   const tagOf = {} // alliance id -> tag
-  for (const a of alliances?.querySelectorAll('alliance') ?? []) tagOf[a.getAttribute('id')] = a.getAttribute('tag')
+  const allianceList = []
+  for (const a of alliances?.querySelectorAll('alliance') ?? []) {
+    tagOf[a.getAttribute('id')] = a.getAttribute('tag')
+    allianceList.push({ id: a.getAttribute('id'), name: a.getAttribute('name'), tag: a.getAttribute('tag') })
+  }
   const status = {}
   for (const p of players.querySelectorAll('player')) status[p.getAttribute('id')] = p.getAttribute('status') ?? ''
   const world = {
@@ -45,7 +49,8 @@ function buildWorld(universe, players, serverData, alliances) {
     ignoreEmpty: num('fleetIgnoreEmptySystems', 0) === 1, ignoreInactive: num('fleetIgnoreInactiveSystems', 0) === 1,
     factor: { peaceful: num('speedFleetPeaceful', 1), war: num('speedFleetWar', 1) },
     sys: new Map(), // "g:s" -> { planets, active }
-    byPlayer: new Map(), // player id -> [{ coords, name, moon }]
+    byPlayer: new Map(), // player id -> [{ coords, name, moon, pid }]
+    alliances: allianceList, // [{ id, name, tag }]
     at: new Map(), // "g:s:p" -> owner player id
     players: [...players.querySelectorAll('player')].map((p) => ({
       id: p.getAttribute('id'), name: p.getAttribute('name'), status: p.getAttribute('status') ?? '', alliance: tagOf[p.getAttribute('alliance')] ?? '',
@@ -60,7 +65,7 @@ function buildWorld(universe, players, serverData, alliances) {
     world.sys.set(key, s)
     world.at.set(coords, owner)
     if (!world.byPlayer.has(owner)) world.byPlayer.set(owner, [])
-    world.byPlayer.get(owner).push({ coords, name: pl.getAttribute('name'), moon: !!pl.querySelector('moon') })
+    world.byPlayer.get(owner).push({ coords, name: pl.getAttribute('name'), moon: !!pl.querySelector('moon'), pid: Number(pl.getAttribute('id')) })
   }
   world.byId = new Map(world.players.map((p) => [p.id, p]))
   return world
