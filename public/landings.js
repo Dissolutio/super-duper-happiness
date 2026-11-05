@@ -2,7 +2,7 @@
 // Arrival is stored as one absolute moment; each person sees it in their own timezone plus a live countdown.
 // Needs auth.js (sb, getToken), app.js (el, esc), chat.js (coordChip) and gate.js (me, logout).
 const SHOW_LANDED_MIN = 30 // keep a landing on screen this long after it arrives
-const MISSIONS = { attack: 'Attack', acs_attack: 'ACS attack', acs_defend: 'ACS defend', transport: 'Transport', deploy: 'Deploy', espionage: 'Espionage', harvest: 'Harvest', expedition: 'Expedition', moon_destruction: 'Moon destruction', colonize: 'Colonize' }
+const MISSIONS = { attack: 'Attack', acs_attack: 'ACS attack', acs_defend: 'ACS defend', transport: 'Transport', deploy: 'Deploy', espionage: 'Espionage', harvest: 'Harvest', expedition: 'Expedition', moon_destruction: 'Moon destruction', colonize: 'Colonize', return: 'Return' }
 const HOSTILE = new Set(['attack', 'acs_attack', 'moon_destruction'])
 const CATEGORY = { alert: 'Alert', opportunity: 'Opportunity', info: 'Info' }
 const SOURCE = { event: 'event list', phalanx: 'phalanx scan', probe: 'probe report', ally: 'an ally' }
@@ -14,7 +14,7 @@ function categoryFor(whose, mission, coords) {
   if (whose !== 'theirs') return 'info'
   const o = world && ownerAt(world, coords)
   if (HOSTILE.has(mission)) return o && !isOurs(o) ? 'opportunity' : 'alert' // unknown target: assume it is us
-  return mission === 'deploy' || mission === 'acs_defend' ? 'opportunity' : 'info'
+  return ['deploy', 'acs_defend', 'return'].includes(mission) ? 'opportunity' : 'info'
 }
 
 let landings = []
@@ -194,7 +194,7 @@ el('landing-form').onsubmit = async (e) => {
   const coords = `${galaxy}:${system}:${position}`
   const o = world && ownerAt(world, coords)
   // stored kind: enemy = theirs; ours against a planet of our own alliance (or a deployment) = move; any other of ours = ours
-  const side = whose === 'theirs' ? 'theirs' : isOurs(o) || mission === 'deploy' ? 'move' : 'ours'
+  const side = whose === 'theirs' ? 'theirs' : isOurs(o) || mission === 'deploy' || mission === 'return' ? 'move' : 'ours'
   const category = f.category.value === 'auto' ? categoryFor(whose, mission, coords) : f.category.value
   msg('')
   try {

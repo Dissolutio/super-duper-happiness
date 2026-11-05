@@ -101,12 +101,12 @@ The "?" in the header opens a short how-to (install on iPhone and Android, alert
 
 ## Flights (landings with missions and categories)
 
-Run `supabase/flights.sql` once (after `landings.sql` and `landings-move.sql`). Each flight now has a mission (attack, ACS attack, ACS defend,
-transport, deploy, espionage, harvest, expedition, moon destruction, colonize), an optional launch planet, an optional return time, how we know
+Run `supabase/flights.sql` once (after `landings.sql` and `landings-move.sql`; if you ran it before "return" existed, also run `flights-return.sql`). Each flight now has a mission (attack, ACS attack, ACS defend,
+transport, deploy, espionage, harvest, expedition, moon destruction, colonize, return), an optional launch planet, an optional return time, how we know
 (event list, phalanx, probe, ally), and a category the app picks:
 
 - **Alert**: an enemy attack, ACS attack or moon destruction on us (or on a planet we cannot place), which can be defended.
-- **Opportunity**: an enemy fleet at a known place and time: an enemy attack on a non-DONUT planet, an enemy deploy or ACS defend, and the return home of any enemy flight with a known launch planet (shown as its own card).
+- **Opportunity**: an enemy fleet at a known place and time: an enemy attack on a non-DONUT planet, an enemy deploy, ACS defend or return, and the return home of any enemy flight with a known launch planet (shown as its own card).
 - **Info**: everything else, including all of our own flights.
 
 Enemy flights in the info category do not send alerts. The dictation sentence (`public/parse.js`) understands the mission words, `from x y z` and `back in ...`.
