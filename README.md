@@ -93,7 +93,7 @@ Not covered yet: reminders before a landing arrives (e.g. "lands in 10 minutes")
 
 ## Players: other alliances and planet strips
 
-The box under the roster tabs takes any alliance tag or name (autocomplete). That alliance takes the PMA tab; clear the box to get PMA back. Each card shows all of a player's planets left to right, galaxy 1 to 7, with a small dot for each moon. The star marks the capital. The OGame API does not say which planet is the capital, so we guess the oldest one (lowest planet id).
+The box under the roster tabs takes any alliance tag or name (autocomplete). That alliance takes the PMA tab; clear the box to get PMA back. Each card shows all of a player's planets left to right, galaxy 1 to 7, with a small dot for each moon. The star marks the capital. The OGame API does not say which planet is the capital, so the app marks the oldest one (lowest planet id), which has matched every real capital checked so far.
 
 ## Help button
 
