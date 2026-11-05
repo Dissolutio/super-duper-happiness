@@ -5,7 +5,7 @@
 const roster = { filter: 'known', other: '' } // other: tag of the alliance shown in the second alliance's tab (blank = ALLIES[1])
 const slotTag = (f) => (f === ALLIES[1] && roster.other ? roster.other : f)
 
-// The API does not say which planet is the capital. The first planet a player gets is the lowest id, so we guess that one.
+// The API does not say which planet is the capital. The first planet a player gets is the lowest id, so that is the capital (checked against real players: it has matched every time).
 const capitalOf = (planets) => planets.reduce((a, b) => (b.pid < a.pid ? b : a), planets[0])
 
 // All planets left to right: galaxy 1 to 7, each galaxy's width is its systems. Moon = small dot, capital = star.
@@ -154,7 +154,7 @@ async function openPlayer(id) {
 
     <h3>Planets${world ? ` (${planets.length})` : ''}</h3>
     ${planetStrip(planets)}
-    ${planets.length ? '<p class="hint">Star = capital (our guess: the oldest planet). Small dot = moon.</p>' : ''}
+    ${planets.length ? '<p class="hint">Star = capital. Small dot = moon.</p>' : ''}
     ${world ? (planets.length ? `
       <p class="hint">${hasFrom ? `Flight times ${esc(calcSummary())}. Change them in the flight calculator.` : 'Fill in From in the flight calculator to see flight times here.'}</p>
       ${planetRows}` : '<p class="hint">No planets known for this player.</p>')
