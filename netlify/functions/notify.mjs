@@ -11,7 +11,8 @@ import { sendPush } from '../lib/push.mjs'
 
 const json = (status, obj) => new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } })
 const RECENT_MS = 2 * 60 * 1000
-const TITLES = { theirs: 'Enemy incoming', ours: 'Our attack', move: 'Fleet move' }
+const MISSIONS = { attack: 'attack', acs_attack: 'ACS attack', acs_defend: 'ACS defend', transport: 'transport', deploy: 'deploy', espionage: 'espionage', harvest: 'harvest', expedition: 'expedition', moon_destruction: 'moon destruction', colonize: 'colonize' }
+const CATS = { alert: 'ALERT', opportunity: 'Opportunity', info: 'Info' }
 
 function lands(arrivesAt) {
   const min = Math.round((new Date(arrivesAt) - Date.now()) / 60000)
@@ -54,7 +55,7 @@ export default async (req) => {
     } else {
       const since = new Date(Date.now() - RECENT_MS).toISOString()
       const table = type === 'landing' ? 'landings' : 'messages'
-      const cols = type === 'landing' ? 'id,side,galaxy,system,position,strength,arrives_at' : 'id,channel,body'
+      const cols = type === 'landing' ? 'id,side,mission,category,galaxy,system,position,strength,arrives_at' : 'id,channel,body'
       const [item] = await rows(`${table}?author=eq.${user.id}&created_at=gte.${since}&order=created_at.desc&limit=1&select=${cols}`)
       if (!item) return json(200, { sent: 0, note: 'nothing recent to announce' })
 
@@ -64,9 +65,12 @@ export default async (req) => {
       if (!claim.ok) throw new Error(`log ${claim.status}`)
 
       if (type === 'landing') {
+        // enemy flights that need no action (category info) stay quiet; our own moves still follow the "our attacks and fleet moves" setting
+        if (item.side === 'theirs' && item.category === 'info') return json(200, { sent: 0, note: 'info only' })
         const flag = item.side === 'theirs' ? 'on_enemy' : 'on_ours'
         recipients = await rows(`push_subscriptions?select=${subs}&user_id=neq.${user.id}&${flag}=eq.true&${approved}`)
-        message = { title: TITLES[item.side] ?? 'Landing', body: `[${item.galaxy}:${item.system}:${item.position}] · ${item.strength} · ${lands(item.arrives_at)}`, tag: `landing-${item.id}` }
+        const what = `${item.side === 'theirs' ? 'Enemy' : 'Our'} ${MISSIONS[item.mission] ?? 'fleet'}`
+        message = { title: item.side === 'theirs' ? `${CATS[item.category] ?? 'Landing'}: ${what}` : what, body: `[${item.galaxy}:${item.system}:${item.position}] · ${item.strength} · ${lands(item.arrives_at)}`, tag: `landing-${item.id}` }
       } else {
         const named = new Set([...item.body.matchAll(/@([\w.-]{2,32})/g)].map((m) => m[1].toLowerCase()))
         if (!named.size) return json(200, { sent: 0, note: 'no mentions' })
