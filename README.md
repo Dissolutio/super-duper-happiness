@@ -111,3 +111,10 @@ transport, deploy, espionage, harvest, expedition, moon destruction, colonize, r
 
 Enemy flights in the info category do not send alerts. The dictation sentence (`public/parse.js`) understands the mission words, `from x y z` and `back in ...`.
 The old `add_landing()` function is kept so a page that has not updated yet keeps working.
+
+## War map
+
+The Map tab (`public/map.js`) draws the universe from the same OGame data as the flight calculator. Whole-universe view: the 7 galaxies on a ring (galaxy 7 touches galaxy 1,
+because the server wraps galaxies). Galaxy view: the 499 systems around a ring (system 499 touches system 1), a planet's distance from the middle is its planet number.
+Orange = DONUT, red = the alliance in the second roster tab, moons are small dots, and flights with a known launch planet are arrows coloured by category.
+Needs no database change.
