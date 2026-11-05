@@ -9,7 +9,7 @@ const path = require('path')
 const PORT = 3000
 const BASE = process.env.OGAME_BASE || 'https://s265-us.ogame.gameforge.com'
 const CACHE_MS = 5 * 60 * 1000 // the API only updates hourly/daily, don't hammer it
-const PUBLIC = path.join(__dirname, 'public')
+const PUBLIC = path.join(__dirname, process.env.SITE || 'public') // SITE=showcase/site previews the public alliance page
 const TYPES = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.png': 'image/png', '.webmanifest': 'application/manifest+json' }
 
 const cache = {} // url -> { time, body }

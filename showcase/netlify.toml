@@ -1,0 +1,40 @@
+# The PUBLIC alliance page. Deploy it as its OWN Netlify site (a second site from this same repo) with "Base directory" set to
+# "showcase". Nothing from the war room (public/, supabase, functions) is published by this site, it has no login and no database.
+[build]
+  publish = "site"
+
+# Only the four public game files the map needs are passed on to the OGame server; nothing else.
+[[redirects]]
+  from = "/api/universe.xml"
+  to = "https://s265-us.ogame.gameforge.com/api/universe.xml"
+  status = 200
+[[redirects]]
+  from = "/api/players.xml"
+  to = "https://s265-us.ogame.gameforge.com/api/players.xml"
+  status = 200
+[[redirects]]
+  from = "/api/alliances.xml"
+  to = "https://s265-us.ogame.gameforge.com/api/alliances.xml"
+  status = 200
+[[redirects]]
+  from = "/api/serverData.xml"
+  to = "https://s265-us.ogame.gameforge.com/api/serverData.xml"
+  status = 200
+[[redirects]]
+  from = "/api/highscore.xml"
+  to = "https://s265-us.ogame.gameforge.com/api/highscore.xml"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+    X-Frame-Options = "DENY"
+
+# The game only refreshes these hourly or daily: let browsers and Netlify's edge keep them, so visitors never hammer the game server.
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "public, max-age=900, s-maxage=900"

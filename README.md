@@ -147,3 +147,10 @@ The map's lens button cycles through ways of looking at the universe (`public/le
 - Big fleets: ranked by military share of total points.
 - Ripe targets: 0.4 fleet share + 0.2 closeness to our planets + 0.15 neglected research + 0.15 no alliance + 0.1 inactive. All shares are percentile ranks within the pool, so there are no fixed cutoffs; tune the weights in `huntBoard`.
 - Scans (`supabase/scans.sql`, run once): spy reports added by pasting the page also save the value of the ships and defence on that planet or moon (`scans` table, written by `add_scan()`, readable by members). The lenses use scans up to 14 days old: ships / (ships + defence) scales the player's military share, so turtles drop and fleeters stay. Reports added by ID do not include these numbers yet. A report that shows neither (both 0) is ignored, since hidden and empty look the same.
+
+## Public alliance page (`showcase/`)
+A separate, public, no-login page for the alliance: the universe map with DONUT in orange and everyone else faint, galaxy tabs, pinch/wheel zoom, a tap card per planet, and the member list (tap a member to find them). It is deliberately its own site, not a route of the war room.
+- Standalone code in `showcase/site/` (no shared scripts, no Supabase, no keys, nothing from `public/`). It reads only the game's public files through four fixed redirects in `showcase/netlify.toml`, cached 15 minutes.
+- Deploy: in Netlify, **Add new site > Import from Git**, pick this repo, set **Base directory** to `showcase` (it reads `showcase/netlify.toml`, publish dir `site`), no build command. Then choose a neutral site name (Site configuration > Change site name), because the name is the URL.
+- Preview locally: `SITE=showcase/site node server.js`.
+- It shows only what anyone can already see in the game's galaxy view. It must never show war-room data (flights, moons, scans, lenses, intel).

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>DONUT, an OGame alliance</title>
+  <meta name="description" content="Where DONUT lives in the OGame universe Jishui (USA). Orange planets are ours.">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <h1>DONUT</h1>
+    <p id="sub">Loading the universe...</p>
+  </header>
+  <nav id="tabs" aria-label="Galaxy"></nav>
+  <main>
+    <div id="stage">
+      <svg id="svg" role="img" aria-label="Map of the universe. Orange planets belong to DONUT."></svg>
+      <div id="legend"><span><i class="o">&#9679;</i> DONUT</span><span><i class="x">&#9679;</i> everyone else</span></div>
+      <div id="zoomtxt"></div>
+      <div id="ctl">
+        <button type="button" id="zin" aria-label="Zoom in">+</button>
+        <button type="button" id="zout" aria-label="Zoom out">&minus;</button>
+        <button type="button" id="zreset" aria-label="Reset" hidden>&#8634;</button>
+      </div>
+    </div>
+    <div id="card" hidden></div>
+  </main>
+  <section id="members">
+    <h2>Members</h2>
+    <div id="list"></div>
+  </section>
+  <footer>Universe Jishui, USA. Built from the game's public data, refreshed daily. Not an official OGame site.</footer>
+  <script src="/map.js"></script>
+</body>
+</html>
