@@ -133,17 +133,27 @@
           <summary>+ Add a landing</summary>
           <form id="landing-form">
             <label>Say it all in one go (use your keyboard's microphone if you like)
-              <textarea id="say" rows="2" placeholder="e.g. enemy 2 45 8, about 3 million, lands in 2 hours 15 minutes"></textarea>
+              <textarea id="say" rows="2" placeholder="e.g. enemy attack 2 45 8 from 3 12 4, about 3 million, lands in 2 hours 15 minutes, back in 4 hours"></textarea>
             </label>
             <button type="button" id="say-fill">Fill in the form from this</button>
             <p id="say-result" class="say-result"></p>
-            <label>Type
-              <select name="side"><option value="ours">Our attack</option><option value="move">Fleet move (our own planet)</option><option value="theirs">Enemy incoming</option></select>
-            </label>
+            <div class="row3">
+              <label>Whose fleet
+                <select name="whose"><option value="ours">Ours</option><option value="theirs">Enemy</option></select>
+              </label>
+              <label>Mission
+                <select name="mission">
+                  <option value="attack">Attack</option><option value="acs_attack">ACS attack</option><option value="moon_destruction">Moon destruction</option>
+                  <option value="acs_defend">ACS defend</option><option value="deploy">Deploy</option><option value="transport">Transport</option>
+                  <option value="espionage">Espionage</option><option value="harvest">Harvest</option><option value="expedition">Expedition</option><option value="colonize">Colonize</option>
+                </select>
+              </label>
+            </div>
+            <p class="hint">Target</p>
             <div class="row3">
               <label>Galaxy <input name="galaxy" type="number" inputmode="numeric" min="1" max="7"></label>
               <label>System <input name="system" type="number" inputmode="numeric" min="1" max="499"></label>
-              <label>Planet <input name="position" type="number" inputmode="numeric" min="1" max="15"></label>
+              <label>Planet <input name="position" type="number" inputmode="numeric" min="1" max="16"></label>
             </div>
             <p id="landing-hint" class="say-result"></p>
             <label>Fleet size (rough guess is fine)
@@ -153,6 +163,28 @@
               <label>Lands in: hours <input name="hours" type="number" inputmode="numeric" min="0" max="168"></label>
               <label>minutes <input name="minutes" type="number" inputmode="numeric" min="0" max="59"></label>
             </div>
+            <details id="landing-more">
+              <summary>More: launched from, back home, how we know, category</summary>
+              <div class="more-body">
+                <p class="hint">Launched from (optional)</p>
+                <div class="row3">
+                  <label>Galaxy <input name="og" type="number" inputmode="numeric" min="1" max="7"></label>
+                  <label>System <input name="os" type="number" inputmode="numeric" min="1" max="499"></label>
+                  <label>Planet <input name="op" type="number" inputmode="numeric" min="1" max="15"></label>
+                </div>
+                <p class="hint">Back home in (optional, counted from now)</p>
+                <div class="row3">
+                  <label>hours <input name="rhours" type="number" inputmode="numeric" min="0" max="336"></label>
+                  <label>minutes <input name="rminutes" type="number" inputmode="numeric" min="0" max="59"></label>
+                </div>
+                <label>How do we know
+                  <select name="source"><option value="">Not said</option><option value="event">Event list</option><option value="phalanx">Phalanx scan</option><option value="probe">Probe report</option><option value="ally">An ally told us</option></select>
+                </label>
+                <label>Category
+                  <select name="category"><option value="auto">Pick it for me</option><option value="alert">Alert (can be defended)</option><option value="opportunity">Opportunity (fleet will be pinned)</option><option value="info">Info</option></select>
+                </label>
+              </div>
+            </details>
             <button type="submit">Add landing</button>
             <p id="landing-msg" class="msg"></p>
           </form>
@@ -190,8 +222,10 @@
         <p>The line on each card shows planets left to right, galaxy 1 to 7. A blue dot is a moon. The star is the capital (our guess: the oldest planet).</p>
       </details>
       <details>
-        <summary>Log a landing</summary>
-        <p>On Targets, fill in the landing form, or type one sentence like "enemy 2 45 8, about 3 million, lands in 2 hours" and tap "Fill in the form from this". Alerts go to everyone who turned them on.</p>
+        <summary>Log a flight (landings)</summary>
+        <p>On Targets, fill in the form, or type one sentence like "enemy attack 1 98 5 from 3 12 4, 3 million, lands in 2 hours 15 minutes, back in 4 hours" and tap "Fill in the form from this". Mission words it knows: attack, ACS attack, ACS defend, moon destruction, transport, deploy, spy, harvest, expedition, colonize.</p>
+        <p>Every flight gets a colour: <b>Alert</b> (red) is an attack on us that can be defended. <b>Opportunity</b> (gold) is an enemy fleet that will be at a known place at a known time, such as an enemy fleet arriving, or back home. <b>Info</b> (blue) is everything else. You can change it under "More".</p>
+        <p>Alerts go to everyone who turned them on. Enemy flights that are only info stay quiet.</p>
       </details>
       <div class="sheet-actions"><button type="button" id="help-close">Close</button></div>
     </div>

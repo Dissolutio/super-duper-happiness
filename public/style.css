@@ -73,13 +73,17 @@ button.coord, button.chip { all: unset; cursor: pointer; color: var(--a0); font-
 #landings-box h2 { font-size: 1rem; margin: 0 0 8px; color: var(--dim); text-transform: uppercase; letter-spacing: .05em; }
 #landings { display: grid; gap: 8px; margin-bottom: 10px; }
 .landing { background: var(--card); border-radius: 10px; padding: 10px 12px; border-left: 4px solid var(--line); }
-.landing.ours { border-left-color: var(--a0); }
-.landing.theirs { border-left-color: var(--a1); }
-.landing.move { border-left-color: #5aa9e6; }
+.landing.info { border-left-color: #5aa9e6; }
+.landing.opportunity { border-left-color: var(--a0); }
+.landing.alert { border-left-color: var(--a1); }
 .l-top { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
 .l-side { font-size: .75rem; text-transform: uppercase; color: var(--dim); }
-.landing.theirs .l-side { color: var(--a1); }
-.landing.move .l-side { color: #5aa9e6; }
+.l-cat { font-size: .7rem; text-transform: uppercase; border-radius: 6px; padding: 1px 6px; border: 1px solid currentColor; }
+.landing.info .l-cat { color: #5aa9e6; } .landing.opportunity .l-cat { color: var(--a0); } .landing.alert .l-cat { color: var(--a1); }
+.l-note { margin-top: 2px; font-size: .85rem; color: var(--dim); }
+#landing-more summary { min-height: 40px; display: flex; align-items: center; color: var(--dim); cursor: pointer; }
+.more-body { display: grid; gap: 10px; }
+#landing-form select { font: inherit; font-size: 16px; }
 .l-owner { font-size: .85rem; color: var(--dim); }
 .l-strength { margin-left: auto; font-weight: bold; }
 .l-time { margin-top: 4px; }
