@@ -194,6 +194,24 @@ async function loadMoons() {
   }
 }
 
+// what spy reports saw on each player's planets (ships and defence, by value): MAP.scans = player id -> [{ coords, moon, fleet, defense, at }]
+async function loadScans() {
+  try {
+    const rows = await sb('/rest/v1/scans?select=galaxy,system,position,moon,player_id,fleet_value,defense_value,observed_at', { token: await getToken() })
+    const by = new Map()
+    for (const r of rows) {
+      const id = String(r.player_id)
+      if (!by.has(id)) by.set(id, [])
+      by.get(id).push({ coords: `${r.galaxy}:${r.system}:${r.position}`, moon: r.moon, fleet: Number(r.fleet_value), defense: Number(r.defense_value), at: Date.parse(r.observed_at) })
+    }
+    MAP.scans = by
+    MAP.board = null
+  } catch (e) {
+    if (e.status === 401) return logout()
+    MAP.scans = new Map() // scans.sql not run yet, or no access: the lenses just work without them
+  }
+}
+
 // phalanx range in systems: level squared minus one (level 1 = its own system only)
 const phalanxRange = (level) => Math.max(0, level * level - 1)
 
@@ -593,6 +611,7 @@ function showPicked() {
     <div class="card"><div class="top"><span class="name">${esc(pl?.name ?? '?')}${pl?.moon ? ' &#9790;' : ''}</span>${coordChip(g, s, p)}</div>
     <p class="hint">${o ? playerLink(o.id, o.name) : '?'}${o?.alliance ? ` (${esc(o.alliance)})` : ''} · ${world.byPlayer.get(sel)?.length ?? 0} planets</p>
     ${targetLines(sel)}
+    ${scanLine(MAP.selected)}
     ${pl?.moon ? `
       <div class="moon-form">
         <label class="check"><input type="checkbox" id="moon-gate" ${known?.gate ? 'checked' : ''}> Has a jump gate</label>
@@ -609,6 +628,12 @@ function targetLines(id) {
   const line = statsLine(id)
   const hit = currentBoard()?.get(id)
   return (line ? `<p class="hint">${esc(line)}</p>` : '') + (hit ? `<p class="hint why">&#127919; Target #${hit.rank + 1} of ${TARGETS_SHOWN}: ${esc(hit.why.join(' · '))}</p>` : '')
+}
+
+// what the latest spy report saw on this very planet or moon
+function scanLine(coords) {
+  const mine = (MAP.scans?.get(String(world.at.get(coords))) ?? []).filter((x) => x.coords === coords)
+  return mine.map((x) => `<p class="hint">Scanned ${ageText(x.at)} ago${x.moon ? ' (moon)' : ''}: ships worth ${shortNum(x.fleet / 1000)} points, defence ${shortNum(x.defense / 1000)}.</p>`).join('')
 }
 
 const moonReport = (coords, level) => (level != null ? phalanxReport(coords, level) : '<p class="hint">Enter a phalanx level to see what it can scan.</p>')
@@ -681,6 +706,6 @@ async function openMap() {
   mapSay('Loading universe data...', true)
   await loadCalc()
   mapSay('')
-  await Promise.all([typeof loadLandings === 'function' ? loadLandings() : 0, loadMoons()]) // arrows, gates and phalanx levels
+  await Promise.all([typeof loadLandings === 'function' ? loadLandings() : 0, loadMoons(), loadScans()]) // arrows, gates and phalanx levels
   renderMap()
 }

@@ -27,6 +27,15 @@ function moonFrom(coords, type, levels) {
   return { galaxy: Number(m[1]), system: Number(m[2]), position: Number(m[3]), gate: Number(levels[43] ?? 0) > 0, phalanx: Number(levels[42] ?? 0) }
 }
 
+// What a spy report saw standing on the planet or moon: the value of the ships and of the defence. Null when it showed neither
+// (both 0 usually means the probes could not see them, so we cannot tell "nothing" from "hidden"). Ships in flight are not on the planet.
+function scanFrom(coords, type, player, fleet, defense) {
+  const m = String(coords).match(/^([1-7]):(\d{1,3}):(\d{1,2})$/)
+  const ok = (n) => Number.isFinite(n) && n >= 0 && n <= 1e15
+  if (!m || !player || !ok(fleet) || !ok(defense) || fleet + defense <= 0) return null
+  return { galaxy: Number(m[1]), system: Number(m[2]), position: Number(m[3]), moon: type === 3, player_id: player, fleet: Math.round(fleet), defense: Math.round(defense) }
+}
+
 function parseSpy(doc, a, json) {
   const research = json('research') ?? {}
   const tech = {}
@@ -47,6 +56,7 @@ function parseSpy(doc, a, json) {
     fleet_value: Number(a('fleetvalue')) || 0,
     defense_value: Number(a('defensevalue')) || 0,
     moon: moonFrom(a('coordinates'), Number(a('targetplanettype')), json('buildings')),
+    scan: scanFrom(a('coordinates'), Number(a('targetplanettype')), Number(a('targetplayerid')), Number(a('fleetvalue')), Number(a('defensevalue'))),
   }
   if (!out.player_id || !out.name || !out.at) return { error: 'The report is missing the player or the time.' }
   return out

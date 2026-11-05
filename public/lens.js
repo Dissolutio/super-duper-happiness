@@ -41,6 +41,24 @@ function statsLine(id) {
   return s ? `${shortNum(s.total)} points · fleet ${pctText(s.fleetShare)} (${shortNum(s.mil ?? 0)}) · research ${pctText(s.resShare)} · economy ${pctText(s.ecoShare)}` : ''
 }
 
+const SCAN_MAX_AGE = 14 * 864e5 // older scans say little about a fleet that moves
+
+// "3h", "2d"
+function ageText(at) {
+  const h = (Date.now() - at) / 36e5
+  return h < 1 ? `${Math.max(1, Math.round(h * 60))}m` : h < 48 ? `${Math.round(h)}h` : `${Math.round(h / 24)}d`
+}
+
+// What spy reports saw on a player's planets (recent ones only), added up: { fleet, defense, shipShare, newest, n } or null.
+// shipShare = ships / (ships + defence) on what we scanned. Only what stood on those planets: ships in flight or on other planets are unseen.
+function scanOf(id) {
+  const rows = (MAP.scans?.get(String(id)) ?? []).filter((x) => Date.now() - x.at < SCAN_MAX_AGE)
+  if (!rows.length) return null
+  const fleet = rows.reduce((a, x) => a + x.fleet, 0), defense = rows.reduce((a, x) => a + x.defense, 0)
+  if (fleet + defense <= 0) return null
+  return { fleet, defense, shipShare: fleet / (fleet + defense), newest: Math.max(...rows.map((x) => x.at)), n: rows.length }
+}
+
 // fraction of the values that are below v (0 = lowest, close to 1 = highest)
 function percentileOf(values) {
   const sorted = [...values].sort((a, b) => a - b)
@@ -77,7 +95,12 @@ function huntPool() {
 function huntBoard(lensKey) {
   if (MAP.board?.key === lensKey && MAP.board.world === world) return MAP.board.map
   const pool = huntPool()
-  const stats = new Map(pool.map((p) => [p.id, playerStats(p.id)]))
+  const stats = new Map(pool.map((p) => {
+    const s = playerStats(p.id)
+    // Military points are ships plus defence. If we have scanned them, count only the ships' share: a turtle drops down, a fleeter stays.
+    const sc = scanOf(p.id)
+    return [p.id, { ...s, scan: sc, fleetShare: sc ? s.fleetShare * sc.shipShare : s.fleetShare }]
+  }))
   const fleetPct = percentileOf(pool.map((p) => stats.get(p.id).fleetShare))
   const resPct = percentileOf(pool.map((p) => stats.get(p.id).resShare))
   const oursByGalaxy = new Map()
@@ -94,7 +117,8 @@ function huntBoard(lensKey) {
     const near = Number.isFinite(away) ? 1 - Math.min(away, 80) / 80 : 0
     // ripeness: the fleet matters most, then being close to us, then the other weaknesses (weights add up to 1)
     const ripe = 0.4 * fleet + 0.2 * near + 0.15 * neglect + 0.15 * (p.alliance ? 0 : 1) + 0.1 * (idle ? 1 : 0)
-    const why = [`fleet ${pctText(s.fleetShare)} of points (${shortNum(s.mil ?? 0)})`]
+    const why = [s.scan ? `ships about ${pctText(s.fleetShare)} of points (military ${pctText(s.mil / s.total)}, ${pctText(s.scan.shipShare)} of it ships when scanned ${ageText(s.scan.newest)} ago)` : `fleet ${pctText(s.fleetShare)} of points (${shortNum(s.mil ?? 0)}, may include defence)`]
+    if (s.scan && s.scan.shipShare < 0.4) why.push('turtle: mostly defence when scanned')
     if (neglect > 0.7) why.push(`research only ${pctText(s.resShare)}`)
     if (!p.alliance) why.push('no alliance to defend them')
     if (idle) why.push('inactive, so no one is watching the fleet')
