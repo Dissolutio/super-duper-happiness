@@ -46,6 +46,7 @@
     <header>
       <h1>War Room</h1>
       <span>
+        <button id="notify-btn">Alerts</button>
         <button id="rename">Name</button>
         <button id="signout">Sign out</button>
       </span>
@@ -163,6 +164,24 @@
     </section>
   </div>
 
+  <dialog id="notify-sheet">
+    <div class="sheet-body">
+      <p class="sheet-title">Alerts on this device</p>
+      <p id="notify-status" class="msg"></p>
+      <div id="notify-prefs">
+        <label><input type="checkbox" id="np-enemy" checked> Enemy incoming</label>
+        <label><input type="checkbox" id="np-ours" checked> Our attacks and fleet moves</label>
+        <label><input type="checkbox" id="np-mention" checked> Someone writes @yourname in chat</label>
+      </div>
+      <div class="sheet-actions">
+        <button type="button" id="notify-on">Turn on</button>
+        <button type="button" id="notify-test">Send a test</button>
+        <button type="button" id="notify-off">Turn off</button>
+        <button type="button" id="notify-close">Close</button>
+      </div>
+    </div>
+  </dialog>
+
   <dialog id="coord-sheet">
     <div class="sheet-body">
       <p class="sheet-title">Tap a number to copy it</p>
@@ -190,6 +209,7 @@
   <script src="/flight.js"></script>
   <script src="/calc.js"></script>
   <script src="/player.js"></script>
+  <script src="/notify.js"></script>
   <script src="/gate.js"></script>
 </body>
 </html>
