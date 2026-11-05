@@ -119,6 +119,10 @@ because the server wraps galaxies). Galaxy view: the 499 systems around a ring (
 Orange = DONUT, red = the alliance in the second roster tab, moons are small dots, and flights with a known launch planet are arrows coloured by category.
 Needs no database change.
 
+Zoom (pinch, double-tap, wheel, + / -, up to 12x) changes only the SVG viewBox while a finger moves; on release the map is redrawn for that zoom
+(dots and text stay a steady size on screen, planet names appear from 3.5x without overlapping, only planets near the screen are drawn).
+The overview in the corner shows the visible part; the find box jumps to a player (fits their planets in their main galaxy) or to coordinates.
+
 Moons: run `supabase/moons.sql` once. Tap a planet that has a moon, tick "Has a jump gate" and/or enter its phalanx level, and save (stored in `moons`, readable by approved members, written only through `set_moon()`).
 Gates are drawn as green rings joined by dotted lines per owner; a phalanx level draws the systems it reaches (level squared minus 1, each way, wrapping round the galaxy) and lists the second alliance's planets in range. Until the SQL is run the map still works, only saving moons fails.
 
