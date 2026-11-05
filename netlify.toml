@@ -1,6 +1,10 @@
 [build]
   publish = "public"
 
+# Server code for notifications (netlify/functions/notify.mjs). It needs no npm packages.
+[functions]
+  directory = "netlify/functions"
+
 # On Netlify there is no server.js; this rewrite does the same job (same-origin proxy, so no CORS problem).
 [[redirects]]
   from = "/api/*"

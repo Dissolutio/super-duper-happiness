@@ -113,6 +113,7 @@ async function send() {
   try {
     await sb('/rest/v1/messages', { method: 'POST', body: { channel: chat.channel, body }, token: await getToken() })
     input.value = ''
+    if (/@[\w.-]{2,32}/.test(body)) notifyOthers('message') // only mentions cause alerts
     await poll() // pick up our own message (and anyone else's)
   } catch (e) {
     if (e.status === 401) return logout()
