@@ -56,6 +56,7 @@
     <nav id="views">
       <button data-view="data" class="active">Data</button>
       <button data-view="players">Players</button>
+      <button data-view="map">Map</button>
       <button data-view="general">General</button>
       <button data-view="targets">Targets</button>
     </nav>
@@ -123,6 +124,14 @@
         <div id="intel-list"></div>
       </div>
       <div id="player-page" hidden></div>
+    </section>
+
+    <section id="map" hidden>
+      <nav id="map-tabs"></nav>
+      <svg id="map-svg" viewBox="0 0 400 400" role="img" aria-label="War map"></svg>
+      <p id="map-legend" class="hint"></p>
+      <p id="map-hint" class="hint"></p>
+      <div id="map-info"></div>
     </section>
 
     <section id="chat" hidden>
@@ -222,6 +231,10 @@
         <p>The line on each card shows planets left to right, galaxy 1 to 7. A blue dot is a moon. The star is the capital (our guess: the oldest planet).</p>
       </details>
       <details>
+        <summary>The map</summary>
+        <p>Map shows the whole universe: the 7 galaxies sit in a ring (galaxy 7 is next to galaxy 1). Tap a galaxy, or a number, to open it. In a galaxy the systems run around the ring, and a planet's number is how far out it sits (1 inside, 15 outside). Orange is us, red is the second alliance (change it with the alliance box on Players), moons are the small light dots. Tap a planet to see who owns it. Arrows are flights with a known launch planet, in the flight colours.</p>
+      </details>
+      <details>
         <summary>Log a flight (landings)</summary>
         <p>On Targets, fill in the form, or type one sentence like "enemy attack 1 98 5 from 3 12 4, 3 million, lands in 2 hours 15 minutes, back in 4 hours" and tap "Fill in the form from this". Mission words it knows: attack, ACS attack, ACS defend, moon destruction, transport, deploy, spy, harvest, expedition, colonize, return (say "returning to 1 159 7 in 2 hours").</p>
         <p>Every flight gets a colour: <b>Alert</b> (red) is an attack on us that can be defended. <b>Opportunity</b> (gold) is an enemy fleet that will be at a known place at a known time, such as an enemy fleet arriving, or back home. <b>Info</b> (blue) is everything else. You can change it under "More".</p>
@@ -276,6 +289,7 @@
   <script src="/flight.js"></script>
   <script src="/calc.js"></script>
   <script src="/player.js"></script>
+  <script src="/map.js"></script>
   <script src="/notify.js"></script>
   <script src="/help.js"></script>
   <script src="/gate.js"></script>
