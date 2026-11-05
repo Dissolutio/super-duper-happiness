@@ -129,3 +129,6 @@ Gates are drawn as green rings joined by dotted lines per owner; a phalanx level
 Moons from spy reports: a spy report on a moon that shows its buildings (pasted page or report id) sets that moon's phalanx level (building 42) and jump gate (building 43)
 through `set_moon_seen()`. Only a report newer than what we already know counts (`observed_at`); typed-in values count as seen "now". If you ran `moons.sql` before this existed, run `supabase/moons-reports.sql` once.
 Until then a moon report still updates the player, and the paste result says the moon could not be saved.
+
+Map filter: by default the map hides inactive players and players with no alliance who are weaker (total points, `highscore.xml?category=1&type=0`) than our weakest DONUT player.
+DONUT, the second tab's alliance and whoever is tapped or searched for always show; other alliances show unless inactive. The button under the map toggles "show everyone".
