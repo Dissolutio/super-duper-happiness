@@ -17,6 +17,13 @@ const MAP = {
   find: null, // player id found with the search box: their planets are ringed
   all: false, // false = hide the players we do not care about (see isRelevant); true = show everyone
 }
+// a short message on the map that fades after a few seconds
+let mapSayTimer = 0
+function mapSay(text, keep) {
+  el('map-hint').textContent = text
+  clearTimeout(mapSayTimer)
+  if (text && !keep) mapSayTimer = setTimeout(() => (el('map-hint').textContent = ''), 4500)
+}
 const TAU = Math.PI * 2
 const MAX_ZOOM = 12
 
@@ -112,9 +119,13 @@ function viewBox() {
 function clampView() {
   const v = MAP.view
   v.k = Math.min(MAX_ZOOM, Math.max(1, v.k))
-  const slack = 200 - 200 / v.k // how far the centre may move from the middle at this zoom
-  v.cx = Math.min(200 + slack, Math.max(200 - slack, v.cx))
-  v.cy = Math.min(200 + slack, Math.max(200 - slack, v.cy))
+  const b = viewBox()
+  // keep the map on screen: the view may not leave the 400 x 400 map, except that it can slide up and down a little so a
+  // planet can be lifted clear of the sheet at the bottom
+  const range = (half, extra) => { const slack = Math.max(0, 200 - half) + extra; return [200 - slack, 200 + slack] }
+  const [x0, x1] = range(b.w / 2, 0), [y0, y1] = range(b.h / 2, 0.4 * b.h)
+  v.cx = Math.min(x1, Math.max(x0, v.cx))
+  v.cy = Math.min(y1, Math.max(y0, v.cy))
 }
 // a screen point (clientX/Y) in map units
 function toMap(x, y) {
@@ -168,7 +179,7 @@ async function loadMoons() {
     MAP.moons = new Map(rows.map((m) => [`${m.galaxy}:${m.system}:${m.position}`, m]))
   } catch (e) {
     if (e.status === 401) return logout()
-    el('map-hint').textContent = 'Could not load moon info: ' + e.message // the map still works without it
+    mapSay('Could not load moon info: ' + e.message) // the map still works without it
   }
 }
 
@@ -249,8 +260,8 @@ function mapLabels(items, b) {
   const rank = (x) => (x.owner === MAP.find ? 0 : x.owner === MAP.picked ? 1 : [2, 3, 5, 6][mapSide(x.owner)])
   const allow = k >= 8 ? 6 : k >= 5 ? 3 : 2 // 3.5x: us and the picked player; 5x: them too; 8x: everyone
   const W = b.w / b.u, H = b.h / b.u
-  // places a name must not cover: the buttons (top right), the zoom text (top left) and the overview (bottom left)
-  const placed = [[W - 60, 0, W, 240], [0, 0, 190, 24], [0, H - 110, 110, H]]
+  // places a name must not cover: the buttons (top right), the legend (top left), the zoom text (bottom right) and the overview (bottom left)
+  const placed = [[W - 60, 0, W, 330], [0, 0, 110, 84], [W - 110, H - 28, W, H], [0, H - 110, 110, H]]
   const free = (r) => placed.every((q) => r[2] < q[0] || r[0] > q[2] || r[3] < q[1] || r[1] > q[3])
   let out = '', n = 0
   const sorted = items.filter((x) => rank(x) <= allow).sort((a, z) => rank(a) - rank(z))
@@ -369,10 +380,8 @@ function renderMap(keepInfo) {
   drawMap()
   el('map-tabs').innerHTML = [0, ...Array.from({ length: world.galaxies }, (_, i) => i + 1)]
     .map((g) => `<button data-g="${g}" class="${g === MAP.galaxy ? 'active' : ''}">${g === 0 ? 'All' : g}</button>`).join('')
-  el('map-legend').innerHTML = `<span class="m-a0">&#9679;</span> ${esc(ALLIES[0])} <span class="m-a1">&#9679;</span> ${esc(slotTag(ALLIES[1]))} <span class="m-other">&#9679;</span> others <span class="m-moon-key">&#9679;</span> moon <span class="m-gate-key">&#9675;</span> jump gate`
-  el('map-filter').textContent = MAP.all ? 'Hide the players we do not care about' : `Showing what matters (${MAP.hidden ?? 0} planets hidden). Show everyone`
-  el('map-hint').textContent = MAP.galaxy === 0 ? 'Tap a galaxy to open it. Pinch or double-tap to zoom. Arrows are flights with a known launch planet.'
-    : 'Pinch or double-tap to zoom, drag to move. Planet 1 is the inner edge, planet 15 the outer. Tap a planet.'
+  el('map-legend').innerHTML = `<span><i class="m-a0">&#9679;</i> ${esc(ALLIES[0])}</span><span><i class="m-a1">&#9679;</i> ${esc(slotTag(ALLIES[1]))}</span><span><i class="m-other">&#9679;</i> others</span><span><i class="m-moon-key">&#9679;</i> moon &nbsp;<i class="m-gate-key">&#9675;</i> gate</span>`
+  el('map-filter').classList.toggle('on', MAP.all)
   if (!el('map-find-list').children.length) el('map-find-list').innerHTML = world.players.map((p) => `<option value="${esc(p.name)}">`).join('')
   if (!keepInfo) showPicked()
 }
@@ -469,6 +478,15 @@ function mapTap(target) {
   MAP.selected = pl.dataset.c
   MAP.preview = null
   MAP.picked = world.at.get(MAP.selected) ?? null
+  // the details sheet covers the lower half: lift the planet into the upper half if it is below
+  const [g, sy, p] = MAP.selected.split(':').map(Number)
+  const q = mapPoint(g, sy, p)
+  if (q) {
+    const b = viewBox()
+    const fy = (q[1] - b.y) / b.h
+    if (fy > 0.42) MAP.view.cy += (fy - 0.25) * b.h
+    clampView()
+  }
   renderMap()
 }
 
@@ -499,7 +517,7 @@ el('map-mini').onclick = (e) => {
   MAP.view.cy = ((e.clientY - r.top) / r.height) * 400
   drawMap()
 }
-addEventListener('resize', () => !el('map').hidden && drawMap())
+new ResizeObserver(() => !el('map').hidden && drawMap()).observe(el('map-stage')) // rotating the phone, full screen
 
 // "Find": a player name or coordinates. Opens the right galaxy and zooms to fit.
 el('map-find').onchange = () => {
@@ -517,9 +535,9 @@ el('map-find').onchange = () => {
     return renderMap()
   }
   const p = world.players.find((x) => x.name.toLowerCase() === q.toLowerCase())
-  if (!p) return (el('map-hint').textContent = `No player called "${q}".`)
+  if (!p) return mapSay(`No player called "${q}".`)
   const planets = mapPlanets().filter((x) => x.owner === p.id)
-  if (!planets.length) return (el('map-hint').textContent = `${p.name} has no planets in the universe data.`)
+  if (!planets.length) return mapSay(`${p.name} has no planets in the universe data.`)
   // the galaxy where they have the most planets
   const count = {}
   for (const x of planets) count[x.g] = (count[x.g] ?? 0) + 1
@@ -532,7 +550,8 @@ el('map-find').onchange = () => {
   const span = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys), 30) + 40
   MAP.view = { cx: (Math.max(...xs) + Math.min(...xs)) / 2, cy: (Math.max(...ys) + Math.min(...ys)) / 2, k: 400 / span }
   renderMap()
-  el('map-hint').textContent = `${p.name}: ${planets.length} planet${planets.length === 1 ? '' : 's'}, ${count[MAP.galaxy]} in galaxy ${MAP.galaxy}${Object.keys(count).length > 1 ? ` (also in ${Object.keys(count).filter((g) => Number(g) !== MAP.galaxy).join(', ')})` : ''}.`
+  mapSay(`${p.name}: ${planets.length} planet${planets.length === 1 ? '' : 's'}, ${count[MAP.galaxy]} in galaxy ${MAP.galaxy}${Object.keys(count).length > 1 ? ` (also in ${Object.keys(count).filter((g) => Number(g) !== MAP.galaxy).join(', ')})` : ''}.`)
+  el('map-findbox').hidden = true
 }
 
 // ---- the panel under the map ----
@@ -541,6 +560,7 @@ el('map-find').onchange = () => {
 function showPicked() {
   const box = el('map-info')
   const sel = MAP.selected && world.at.get(MAP.selected)
+  box.hidden = !sel
   if (!sel) return (box.innerHTML = '')
   const o = world.byId.get(sel)
   const pl = world.byPlayer.get(sel)?.find((x) => x.coords === MAP.selected)
@@ -548,6 +568,7 @@ function showPicked() {
   const known = MAP.moons.get(MAP.selected)
   const level = MAP.preview ?? known?.phalanx
   box.innerHTML = `
+    <button type="button" id="map-info-close" aria-label="Close">&#x2715;</button>
     <div class="card"><div class="top"><span class="name">${esc(pl?.name ?? '?')}${pl?.moon ? ' &#9790;' : ''}</span>${coordChip(g, s, p)}</div>
     <p class="hint">${o ? playerLink(o.id, o.name) : '?'}${o?.alliance ? ` (${esc(o.alliance)})` : ''} · ${world.byPlayer.get(sel)?.length ?? 0} planets</p>
     ${pl?.moon ? `
@@ -574,12 +595,28 @@ function phalanxReport(coords, level) {
   return `<p class="hint">Level ${level}: sees ${range} system${range === 1 ? '' : 's'} each way. ${hit.length} planet${hit.length === 1 ? '' : 's'} in range: ${ours.length} ${esc(ALLIES[0])}, ${them.length} ${esc(slotTag(ALLIES[1]))}, ${hit.length - ours.length - them.length} others.</p>${list}${them.length > 15 ? `<p class="hint">...and ${them.length - 15} more.</p>` : ''}`
 }
 
-el('map-filter').onclick = () => { MAP.all = !MAP.all; renderMap() }
+el('map-filter').onclick = () => {
+  MAP.all = !MAP.all
+  renderMap()
+  mapSay(MAP.all ? 'Showing everyone' : `Hiding inactive and weak players (${MAP.hidden} planets). Tap the eye to show them.`)
+}
+el('map-search').onclick = () => {
+  const box = el('map-findbox')
+  box.hidden = !box.hidden
+  if (!box.hidden) { el('map-find').value = ''; el('map-find').focus() }
+}
+el('map-find').onkeydown = (e) => { if (e.key === 'Escape') el('map-findbox').hidden = true }
 el('map-tabs').onclick = (e) => {
   const b = e.target.closest('button')
   if (b) openGalaxy(Number(b.dataset.g))
 }
 el('map-info').onclick = async (e) => {
+  if (e.target.closest('#map-info-close')) {
+    MAP.selected = null
+    MAP.picked = null
+    MAP.preview = null
+    return renderMap()
+  }
   if (e.target.closest('#moon-save')) {
     const [g, s, p] = MAP.selected.split(':').map(Number)
     const lv = el('moon-phalanx').value
@@ -608,8 +645,9 @@ el('map-info').oninput = (e) => {
 }
 
 async function openMap() {
-  el('map-hint').textContent = 'Loading universe data...'
+  mapSay('Loading universe data...', true)
   await loadCalc()
+  mapSay('')
   await Promise.all([typeof loadLandings === 'function' ? loadLandings() : 0, loadMoons()]) // arrows, gates and phalanx levels
   renderMap()
 }
