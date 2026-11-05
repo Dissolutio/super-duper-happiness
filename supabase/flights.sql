@@ -4,7 +4,7 @@
 
 alter table public.landings
   add column mission  text not null default 'attack'
-    check (mission in ('attack','acs_attack','acs_defend','transport','deploy','espionage','harvest','expedition','moon_destruction','colonize')),
+    check (mission in ('attack','acs_attack','acs_defend','transport','deploy','espionage','harvest','expedition','moon_destruction','colonize','return')),
   add column category text not null default 'info' check (category in ('info','opportunity','alert')),
   add column origin_galaxy   smallint check (origin_galaxy between 1 and 7),
   add column origin_system   smallint check (origin_system between 1 and 499),

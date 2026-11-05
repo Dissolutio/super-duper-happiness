@@ -18,7 +18,8 @@ const MISSION_WORDS = [
   ['harvest', /\bharvest\w*|\brecycl\w*|\bdebris\b/],
   ['espionage', /\bspy\w*|\bspies\b|\bespionage\b|\bprobe\w*|\bscout\w*/],
   ['transport', /\btransport\w*|\bhaul\w*/],
-  ['deploy', /\breturn(?:s|ing)?\s+(?:to|home)\b|\bdeploy\w*|\bmov(?:e|es|ing)\b|\brelocat\w*|\btransfer\w*|\brebas\w*/],
+  ['return', /\breturn(?:s|ing)?\s+(?:to|home)\b|\bcoming\s+(?:back|home)\b|\bhead(?:s|ing)?\s+(?:back|home)\b/],
+  ['deploy', /\bdeploy\w*|\bmov(?:e|es|ing)\b|\brelocat\w*|\btransfer\w*|\brebas\w*/],
   ['attack', /\battack\w*|\braid\w*|\bsmash\w*|\bhit(?:ting)?\b/],
 ]
 
