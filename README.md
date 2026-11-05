@@ -132,3 +132,5 @@ Until then a moon report still updates the player, and the paste result says the
 
 Map filter: by default the map hides inactive players and players with no alliance who are weaker (total points, `highscore.xml?category=1&type=0`) than our weakest DONUT player.
 DONUT, the second tab's alliance and whoever is tapped or searched for always show; other alliances show unless inactive. The button under the map toggles "show everyone".
+
+@mention suggestions (`public/mention.js`): typing @ shows a strip of tappable names above the chat box (approved members whose display name is letters, digits, _ . - only, which is what mention alerts can match). Plain buttons, no native dropdown, so the phone keyboard is untouched.
