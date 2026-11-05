@@ -77,11 +77,21 @@ const ownerAt = (world, coords) => world.byId.get(world.at.get(coords))
 async function loadWorld() {
   const [u, p, s, a] = await Promise.all([getXml('universe.xml'), getXml('players.xml'), getXml('serverData.xml'), getXml('alliances.xml')])
   const world = buildWorld(u, p, s, a)
-  // total points per player (daily). Used by the map to hide weak players; the map still works without it.
-  world.score = new Map()
-  try {
-    for (const x of (await getXml('highscore.xml?category=1&type=0')).querySelectorAll('player')) world.score.set(x.getAttribute('id'), Number(x.getAttribute('score')))
-  } catch { /* no scores: the map just cannot tell who is weak */ }
+  // daily highscores per player: total, economy, research, military (military points include defence).
+  // Used by the map to hide weak players and by the hunting lenses; the map still works without them.
+  world.stats = new Map()
+  const kinds = [['total', 0], ['eco', 1], ['res', 2], ['mil', 3]]
+  await Promise.all(kinds.map(async ([field, type]) => {
+    try {
+      for (const x of (await getXml(`highscore.xml?category=1&type=${type}`)).querySelectorAll('player')) {
+        const id = x.getAttribute('id')
+        if (!world.stats.has(id)) world.stats.set(id, {})
+        world.stats.get(id)[field] = Number(x.getAttribute('score'))
+      }
+    } catch { /* that list did not load: the lenses that need it say so */ }
+  }))
+  world.score = new Map([...world.stats].filter(([, v]) => v.total != null).map(([id, v]) => [id, v.total]))
+  world.hasMil = [...world.stats.values()].some((v) => v.mil > 0)
   return world
 }
 
