@@ -217,6 +217,12 @@ body.noscroll { overflow: hidden; }
 .m-dot { fill: #6f7396; }
 .m-a0 { fill: var(--a0); color: var(--a0); } .m-a1 { fill: var(--a1); color: var(--a1); } .m-other { fill: #8a96d8; color: #8a96d8; } .m-none { fill: #4f5378; }
 .m-idle { opacity: .45; }
+.m-ctx { opacity: .4; }
+/* hunting lenses: hotter = a better target (colours kept away from orange and red, which are us and them) */
+.m-h5 { fill: #ff2bd6; color: #ff2bd6; } .m-h4 { fill: #d04cff; color: #d04cff; } .m-h3 { fill: #8f6bff; color: #8f6bff; }
+.m-h2 { fill: #4aa8ff; color: #4aa8ff; } .m-h1 { fill: #3fd0d0; color: #3fd0d0; }
+.m-dot.m-pma { stroke: var(--a1); stroke-width: 1.6; vector-effect: non-scaling-stroke; }
+.hint.why { color: #ff7ae6; }
 .m-dot.m-on { stroke: #fff; stroke-width: 1.2; vector-effect: non-scaling-stroke; }
 .m-sel { fill: none; stroke: #fff; stroke-width: 1.5; stroke-dasharray: 3 2; }
 .m-moon { fill: #cfe8ff; } .m-moon-key { color: #cfe8ff; }

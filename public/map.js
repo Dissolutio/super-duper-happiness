@@ -15,7 +15,7 @@ const MAP = {
   galaxy: 0, pl: null, picked: null, selected: null, moons: new Map(), preview: null, // galaxy 0 = the whole universe; moons: coords -> { gate, phalanx }
   view: { cx: 200, cy: 200, k: 1 }, // centre of the screen in map units, and zoom
   find: null, // player id found with the search box: their planets are ringed
-  all: false, // false = hide the players we do not care about (see isRelevant); true = show everyone
+  lens: 0, // which way of looking at the universe (LENSES in lens.js): 0 what matters, 1 everyone, 2 big fleets, 3 ripe targets
 }
 // a short message on the map that fades after a few seconds
 let mapSayTimer = 0
@@ -41,9 +41,11 @@ function weakestOurs() {
   return min
 }
 function isRelevant(ownerId) {
-  if (MAP.all || ownerId === MAP.find || ownerId === MAP.picked) return true
+  if (MAP.lens === 1 || ownerId === MAP.find || ownerId === MAP.picked) return true
   const side = mapSide(ownerId)
   if (side <= 1) return true
+  const board = currentBoard()
+  if (board) return board.has(ownerId) // hunting lenses: only the best targets (us and the second alliance stay as context)
   const o = world.byId.get(ownerId)
   if (!o) return false // not in the daily player list: nobody we know
   if (/[iI]/.test(o.status ?? '')) return false
@@ -76,7 +78,16 @@ function mapSide(ownerId) {
   return tag ? 2 : 3
 }
 const SIDE_CLASS = ['m-a0', 'm-a1', 'm-other', 'm-none']
-const mapClass = (ownerId) => SIDE_CLASS[mapSide(ownerId)] + (/[iI]/.test(world.byId.get(ownerId)?.status ?? '') ? ' m-idle' : '')
+function mapClass(ownerId) {
+  const side = mapSide(ownerId)
+  const board = currentBoard()
+  const hit = board?.get(ownerId)
+  let c = hit ? `m-h${hit.bucket}${side === 1 ? ' m-pma' : ''}` : SIDE_CLASS[side]
+  if (board && !hit && side === 0) c += ' m-ctx' // our own planets: dimmed, just for reference
+  return c + (!hit && /[iI]/.test(world.byId.get(ownerId)?.status ?? '') ? ' m-idle' : '') // a target stays bright even if inactive
+}
+// dots of the best few targets are drawn bigger
+const dotBoost = (ownerId) => ((currentBoard()?.get(ownerId)?.rank ?? 99) < 8 ? 1.6 : 1)
 
 const ang = (s) => ((s - 1) / world.systems) * TAU - Math.PI / 2
 const polar = (cx, cy, r, s) => [cx + r * Math.cos(ang(s)), cy + r * Math.sin(ang(s))]
@@ -256,12 +267,16 @@ const mapDefs = (px) => ['alert', 'opportunity', 'info']
 // Most important first (found player, picked player, us, them, others); a name is skipped if its spot on screen is taken.
 function mapLabels(items, b) {
   const k = MAP.view.k
-  if (k < 3.5) return ''
-  const rank = (x) => (x.owner === MAP.find ? 0 : x.owner === MAP.picked ? 1 : [2, 3, 5, 6][mapSide(x.owner)])
-  const allow = k >= 8 ? 6 : k >= 5 ? 3 : 2 // 3.5x: us and the picked player; 5x: them too; 8x: everyone
+  const board = currentBoard()
+  if (k < (board ? 2 : 3.5)) return ''
+  // hunting lenses: the best targets first (the top 8 from 2x, more as you zoom), nobody else
+  const rank = board
+    ? (x) => (x.owner === MAP.find ? 0 : x.owner === MAP.picked ? 1 : board.has(x.owner) ? 2 + board.get(x.owner).rank / 100 : 9)
+    : (x) => (x.owner === MAP.find ? 0 : x.owner === MAP.picked ? 1 : [2, 3, 5, 6][mapSide(x.owner)])
+  const allow = board ? (k >= 5 ? 3 : k >= 3.5 ? 2.25 : 2.08) : k >= 8 ? 6 : k >= 5 ? 3 : 2 // 3.5x: us and the picked player; 5x: them too; 8x: everyone
   const W = b.w / b.u, H = b.h / b.u
   // places a name must not cover: the buttons (top right), the legend (top left), the zoom text (bottom right) and the overview (bottom left)
-  const placed = [[W - 60, 0, W, 330], [0, 0, 110, 84], [W - 110, H - 28, W, H], [0, H - 110, 110, H]]
+  const placed = [[W - 60, 0, W, 330], [0, 0, 110, 112], [W - 110, H - 28, W, H], [0, H - 110, 110, H]]
   const free = (r) => placed.every((q) => r[2] < q[0] || r[0] > q[2] || r[3] < q[1] || r[1] > q[3])
   let out = '', n = 0
   const sorted = items.filter((x) => rank(x) <= allow).sort((a, z) => rank(a) - rank(z))
@@ -300,11 +315,11 @@ function drawMap() {
       const [cx, cy] = galaxyCentre(g)
       body += `<g class="m-gal" data-g="${g}"><circle class="m-ring" cx="${f1(cx)}" cy="${f1(cy)}" r="${UNI_R1 + 4}"/><circle class="m-hit" cx="${f1(cx)}" cy="${f1(cy)}" r="${UNI_R1 + 8}"/><text class="m-glabel" x="${f1(cx)}" y="${f1(cy + 4)}">${g}</text></g>`
     }
-    const r = f2(px(dotPx(1.2)))
+    const r = px(dotPx(1.2))
     for (const x of list) {
       const [qx, qy] = mapPoint(x.g, x.s, x.p)
       if (!near(qx, qy)) continue
-      body += `<circle class="m-dot ${mapClass(x.owner)}${x.owner === MAP.find ? ' m-on' : ''}" cx="${f1(qx)}" cy="${f1(qy)}" r="${r}"/>`
+      body += `<circle class="m-dot ${mapClass(x.owner)}${x.owner === MAP.find ? ' m-on' : ''}" cx="${f1(qx)}" cy="${f1(qy)}" r="${f2(r * dotBoost(x.owner))}"/>`
     }
   } else {
     // rings for planet 1 and 15, faint ones for each planet number in between once zoomed in
@@ -343,7 +358,7 @@ function drawMap() {
       shown.push({ ...x, x: qx, y: qy })
       const on = x.owner === MAP.picked || x.owner === MAP.find ? ' m-on' : ''
       const selected = x.coords === MAP.selected ? `<circle class="m-sel" cx="${f2(qx)}" cy="${f2(qy)}" r="${f2(r + px(5))}"/>` : ''
-      body += `<g class="m-planet" data-c="${x.coords}">${selected}<circle class="m-hit" cx="${f2(qx)}" cy="${f2(qy)}" r="${f2(hit)}"/><circle class="m-dot ${mapClass(x.owner)}${on}" cx="${f2(qx)}" cy="${f2(qy)}" r="${f2(r)}"/>`
+      body += `<g class="m-planet" data-c="${x.coords}">${selected}<circle class="m-hit" cx="${f2(qx)}" cy="${f2(qy)}" r="${f2(hit)}"/><circle class="m-dot ${mapClass(x.owner)}${on}" cx="${f2(qx)}" cy="${f2(qy)}" r="${f2(r * dotBoost(x.owner))}"/>`
       if (x.moon) body += `<circle class="m-moon" cx="${f2(qx + mo)}" cy="${f2(qy - mo)}" r="${f2(mr)}"/>`
       body += '</g>'
     }
@@ -359,7 +374,7 @@ function drawMap() {
 
 // the overview in the corner: the whole map, small, with a frame round the part on screen. Built once per galaxy and side choice.
 function drawMini() {
-  const key = `${MAP.galaxy}|${slotTag(ALLIES[1])}|${MAP.pl?.list.length}`
+  const key = `${MAP.galaxy}|${slotTag(ALLIES[1])}|${MAP.pl?.list.length}|${MAP.lens}`
   if (MAP.miniKey !== key) {
     MAP.miniKey = key
     let dots = ''
@@ -367,9 +382,10 @@ function drawMini() {
     else dots += `<circle class="m-ring" cx="200" cy="200" r="${GAL_R0 - 6}"/><circle class="m-ring" cx="200" cy="200" r="${GAL_R1 + 6}"/>`
     for (const x of mapPlanets()) {
       const side = mapSide(x.owner)
-      if (side > 1) continue // just us and them: the overview is for finding your way
+      const hit = currentBoard()?.get(x.owner)
+      if (side > 1 && !hit) continue // just us and them (and the targets): the overview is for finding your way
       const q = mapPoint(x.g, x.s, x.p)
-      if (q) dots += `<circle class="${SIDE_CLASS[side]}" cx="${f1(q[0])}" cy="${f1(q[1])}" r="5"/>`
+      if (q) dots += `<circle class="${hit ? `m-h${hit.bucket}` : SIDE_CLASS[side]}" cx="${f1(q[0])}" cy="${f1(q[1])}" r="${hit ? 6 : 5}"/>`
     }
     el('map-mini').innerHTML = `${dots}<rect id="map-frame" class="m-frame"/>`
   }
@@ -380,8 +396,13 @@ function renderMap(keepInfo) {
   drawMap()
   el('map-tabs').innerHTML = [0, ...Array.from({ length: world.galaxies }, (_, i) => i + 1)]
     .map((g) => `<button data-g="${g}" class="${g === MAP.galaxy ? 'active' : ''}">${g === 0 ? 'All' : g}</button>`).join('')
-  el('map-legend').innerHTML = `<span><i class="m-a0">&#9679;</i> ${esc(ALLIES[0])}</span><span><i class="m-a1">&#9679;</i> ${esc(slotTag(ALLIES[1]))}</span><span><i class="m-other">&#9679;</i> others</span><span><i class="m-moon-key">&#9679;</i> moon &nbsp;<i class="m-gate-key">&#9675;</i> gate</span>`
-  el('map-filter').classList.toggle('on', MAP.all)
+  const hunting = MAP.lens >= 2
+  const heat = hunting ? `<span><i class="m-h5">&#9679;</i> best</span><span><i class="m-h3">&#9679;</i> good</span><span><i class="m-h1">&#9679;</i> maybe</span>` : `<span><i class="m-other">&#9679;</i> others</span>`
+  el('map-legend').innerHTML = `<span><i class="m-a0">&#9679;</i> ${esc(ALLIES[0])}</span><span><i class="m-a1">&#9679;</i> ${esc(slotTag(ALLIES[1]))}</span>${heat}<span><i class="m-moon-key">&#9679;</i> moon &nbsp;<i class="m-gate-key">&#9675;</i> gate</span>`
+  const lens = LENSES[MAP.lens]
+  el('map-filter').classList.toggle('on', MAP.lens !== 0)
+  el('map-filter').textContent = lens.icon
+  el('map-filter').setAttribute('aria-label', `Lens: ${lens.name}. Tap to change.`)
   if (!el('map-find-list').children.length) el('map-find-list').innerHTML = world.players.map((p) => `<option value="${esc(p.name)}">`).join('')
   if (!keepInfo) showPicked()
 }
@@ -571,6 +592,7 @@ function showPicked() {
     <button type="button" id="map-info-close" aria-label="Close">&#x2715;</button>
     <div class="card"><div class="top"><span class="name">${esc(pl?.name ?? '?')}${pl?.moon ? ' &#9790;' : ''}</span>${coordChip(g, s, p)}</div>
     <p class="hint">${o ? playerLink(o.id, o.name) : '?'}${o?.alliance ? ` (${esc(o.alliance)})` : ''} · ${world.byPlayer.get(sel)?.length ?? 0} planets</p>
+    ${targetLines(sel)}
     ${pl?.moon ? `
       <div class="moon-form">
         <label class="check"><input type="checkbox" id="moon-gate" ${known?.gate ? 'checked' : ''}> Has a jump gate</label>
@@ -580,6 +602,13 @@ function showPicked() {
       <p id="map-msg" class="msg"></p>
       <div id="moon-report">${moonReport(MAP.selected, level)}</div>` : '<p id="map-msg" class="msg"></p>'}
     </div>`
+}
+
+// points split and, on a hunting lens, why this player is on the list
+function targetLines(id) {
+  const line = statsLine(id)
+  const hit = currentBoard()?.get(id)
+  return (line ? `<p class="hint">${esc(line)}</p>` : '') + (hit ? `<p class="hint why">&#127919; Target #${hit.rank + 1} of ${TARGETS_SHOWN}: ${esc(hit.why.join(' · '))}</p>` : '')
 }
 
 const moonReport = (coords, level) => (level != null ? phalanxReport(coords, level) : '<p class="hint">Enter a phalanx level to see what it can scan.</p>')
@@ -596,9 +625,13 @@ function phalanxReport(coords, level) {
 }
 
 el('map-filter').onclick = () => {
-  MAP.all = !MAP.all
-  renderMap()
-  mapSay(MAP.all ? 'Showing everyone' : `Hiding inactive and weak players (${MAP.hidden} planets). Tap the eye to show them.`)
+  MAP.lens = (MAP.lens + 1) % LENSES.length
+  MAP.board = null
+  renderMap(true)
+  const l = LENSES[MAP.lens]
+  if (MAP.lens >= 2 && !world.hasMil) return mapSay(`${l.name}: the military highscore did not load, so there is nothing to rank. Try reloading.`)
+  const n = MAP.lens >= 2 ? ` Showing the best ${currentBoard().size}.` : MAP.lens === 0 ? ` Hiding ${MAP.hidden} planets.` : ''
+  mapSay(`${l.icon} ${l.name}: ${l.note}.${n}`)
 }
 el('map-search').onclick = () => {
   const box = el('map-findbox')

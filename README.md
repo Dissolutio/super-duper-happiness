@@ -136,5 +136,13 @@ DONUT, the second tab's alliance and whoever is tapped or searched for always sh
 @mention suggestions (`public/mention.js`): typing @ shows a strip of tappable names above the chat box (approved members whose display name is letters, digits, _ . - only, which is what mention alerts can match). Plain buttons, no native dropdown, so the phone keyboard is untouched.
 
 Layout: the header is one slim row with a hamburger menu (Help, Alerts, Change name, Sign out; `public/menu.js`). The Map screen fills the window and the page does not scroll
-(`body.map-active`): galaxy tabs on top, then the map with everything else as overlays (legend, zoom readout, overview, and buttons for full screen, search, the show-everyone eye, zoom and reset).
+(`body.map-active`): galaxy tabs on top, then the map with everything else as overlays (legend, zoom readout, overview, and buttons for full screen, search, the lens button, zoom and reset).
 Tapping a planet opens its details as a sheet over the bottom of the map, and the map slides so the planet stays visible above the sheet.
+
+## Map lenses
+
+The map's lens button cycles through ways of looking at the universe (`public/lens.js`): What matters (default), Everyone, Big fleets and Ripe targets. The two hunting lenses rank non-DONUT players (not on vacation or banned, at least as big as our weakest DONUT player) and show the best 40, heat-coloured, with a "why" line in the planet sheet.
+
+- Data: the daily highscore files for total, economy, research and military points (`loadWorld` in `flight.js` fills `world.stats`). Military points include defence, so a high fleet share can also be a turtle.
+- Big fleets: ranked by military share of total points.
+- Ripe targets: 0.4 fleet share + 0.2 closeness to our planets + 0.15 neglected research + 0.15 no alliance + 0.1 inactive. All shares are percentile ranks within the pool, so there are no fixed cutoffs; tune the weights in `huntBoard`.
