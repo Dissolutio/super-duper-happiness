@@ -38,10 +38,18 @@ export default async (req) => {
   // database access with the secret key (a legacy service_role key is a JWT and also wants an Authorization header)
   const dbHeaders = { apikey: SECRET, 'Content-Type': 'application/json', ...(SECRET.startsWith('eyJ') ? { Authorization: `Bearer ${SECRET}` } : {}) }
   const db = (path, init = {}) => fetch(`${SB}/rest/v1/${path}`, { ...init, headers: { ...dbHeaders, ...init.headers } })
-  const rows = async (path) => { const r = await db(path); if (!r.ok) throw new Error(`database ${r.status}`); return r.json() }
+  // `step` says which lookup failed, so an error tells us where. Only the step, HTTP status and error code: never keys or data.
+  const rows = async (path, step) => {
+    const r = await db(path)
+    if (!r.ok) {
+      const code = (await r.json().catch(() => ({}))).code
+      throw new Error(`${step}: HTTP ${r.status}${typeof code === 'string' ? ' ' + code.slice(0, 12) : ''}`)
+    }
+    return r.json()
+  }
 
   try {
-    const [me] = await rows(`profiles?id=eq.${user.id}&select=approved,display_name`)
+    const [me] = await rows(`profiles?id=eq.${user.id}&select=approved,display_name`, 'profile lookup')
     if (!me?.approved) return json(403, { error: 'not approved' })
 
     let recipients, message
@@ -49,28 +57,28 @@ export default async (req) => {
     const approved = 'profiles.approved=eq.true'
 
     if (type === 'test') {
-      recipients = await rows(`push_subscriptions?select=${subs}&user_id=eq.${user.id}&${approved}`)
+      recipients = await rows(`push_subscriptions?select=${subs}&user_id=eq.${user.id}&${approved}`, 'device lookup')
       message = { title: 'Notifications work', body: 'You will get alerts like this on this device.', tag: 'test' }
     } else {
       const since = new Date(Date.now() - RECENT_MS).toISOString()
       const table = type === 'landing' ? 'landings' : 'messages'
       const cols = type === 'landing' ? 'id,side,galaxy,system,position,strength,arrives_at' : 'id,channel,body'
-      const [item] = await rows(`${table}?author=eq.${user.id}&created_at=gte.${since}&order=created_at.desc&limit=1&select=${cols}`)
+      const [item] = await rows(`${table}?author=eq.${user.id}&created_at=gte.${since}&order=created_at.desc&limit=1&select=${cols}`, `${type} lookup`)
       if (!item) return json(200, { sent: 0, note: 'nothing recent to announce' })
 
       // claim it; if someone already did, stop (this is what makes a repeated call harmless)
       const claim = await db('push_log', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ kind: type, ref_id: item.id }) })
       if (claim.status === 409) return json(200, { sent: 0, note: 'already announced' })
-      if (!claim.ok) throw new Error(`log ${claim.status}`)
+      if (!claim.ok) throw new Error(`log write: HTTP ${claim.status}`)
 
       if (type === 'landing') {
         const flag = item.side === 'theirs' ? 'on_enemy' : 'on_ours'
-        recipients = await rows(`push_subscriptions?select=${subs}&user_id=neq.${user.id}&${flag}=eq.true&${approved}`)
+        recipients = await rows(`push_subscriptions?select=${subs}&user_id=neq.${user.id}&${flag}=eq.true&${approved}`, 'device lookup')
         message = { title: TITLES[item.side] ?? 'Landing', body: `[${item.galaxy}:${item.system}:${item.position}] · ${item.strength} · ${lands(item.arrives_at)}`, tag: `landing-${item.id}` }
       } else {
         const named = new Set([...item.body.matchAll(/@([\w.-]{2,32})/g)].map((m) => m[1].toLowerCase()))
         if (!named.size) return json(200, { sent: 0, note: 'no mentions' })
-        const all = await rows(`push_subscriptions?select=${subs}&user_id=neq.${user.id}&on_mention=eq.true&${approved}`)
+        const all = await rows(`push_subscriptions?select=${subs}&user_id=neq.${user.id}&on_mention=eq.true&${approved}`, 'device lookup')
         recipients = all.filter((s) => named.has(String(s.profiles.display_name ?? '').toLowerCase()))
         message = { title: `${me.display_name} mentioned you`, body: `#${item.channel}: ${item.body.slice(0, 120)}`, tag: `message-${item.id}` }
       }
@@ -84,6 +92,6 @@ export default async (req) => {
     return json(200, { sent, devices: recipients.length })
   } catch (e) {
     console.error('notify failed:', e.message) // message only: never log tokens, keys or subscription details
-    return json(500, { error: 'could not send notifications' })
+    return json(500, { error: 'could not send notifications', detail: e.message })
   }
 }

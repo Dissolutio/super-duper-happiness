@@ -90,7 +90,7 @@ el('notify-test').onclick = async () => {
   alertMsg('Sending...')
   try {
     const { ok, data } = await callNotify('test')
-    alertMsg(!ok ? data.error || 'The server could not send it.' : data.sent ? 'Sent. It should appear in a moment.' : 'The server has no saved device for you. Tap Save, then try again.')
+    alertMsg(!ok ? (data.error || 'The server could not send it.') + (data.detail ? ` (${data.detail})` : '') : data.sent ? 'Sent. It should appear in a moment.' : 'The server has no saved device for you. Tap Save, then try again.')
   } catch {
     alertMsg('Could not reach the server.')
   }
