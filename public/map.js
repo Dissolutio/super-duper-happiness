@@ -15,9 +15,37 @@ const MAP = {
   galaxy: 0, pl: null, picked: null, selected: null, moons: new Map(), preview: null, // galaxy 0 = the whole universe; moons: coords -> { gate, phalanx }
   view: { cx: 200, cy: 200, k: 1 }, // centre of the screen in map units, and zoom
   find: null, // player id found with the search box: their planets are ringed
+  all: false, // false = hide the players we do not care about (see isRelevant); true = show everyone
 }
 const TAU = Math.PI * 2
 const MAX_ZOOM = 12
+
+// Who is worth drawing. Always: DONUT, the second tab's alliance, and whoever is picked / found / selected.
+// Hidden by default: inactive players, and players with no alliance who are weaker than our weakest DONUT player.
+// (Players in other alliances stay, unless inactive: they may end up on either side.)
+function weakestOurs() {
+  if (MAP.weak?.world === world) return MAP.weak.value
+  let min = Infinity
+  for (const p of world.players) {
+    const sc = world.score?.get(p.id)
+    if (p.alliance.toLowerCase() === ALLIES[0].toLowerCase() && sc > 0 && sc < min) min = sc
+  }
+  MAP.weak = { world, value: min }
+  return min
+}
+function isRelevant(ownerId) {
+  if (MAP.all || ownerId === MAP.find || ownerId === MAP.picked) return true
+  const side = mapSide(ownerId)
+  if (side <= 1) return true
+  const o = world.byId.get(ownerId)
+  if (!o) return false // not in the daily player list: nobody we know
+  if (/[iI]/.test(o.status ?? '')) return false
+  if (side === 3) { // no alliance
+    const sc = world.score?.get(ownerId)
+    if (sc != null && sc < weakestOurs()) return false
+  }
+  return true
+}
 
 // every planet in the universe as { g, s, p, name, moon, owner } (built once per loaded universe)
 function mapPlanets() {
@@ -251,7 +279,9 @@ function drawMap() {
   // only draw what is on screen, plus a screen's worth all round (so a drag does not show empty space before the redraw)
   const near = (x, y) => k < 2 || (x > b.x - b.w && x < b.x + 2 * b.w && y > b.y - b.h && y < b.y + 2 * b.h)
   const dotPx = (base) => base * Math.pow(k, 0.45) // dots grow on screen a little as you zoom, so they stay tappable
-  const list = mapPlanets()
+  const all = mapPlanets()
+  const list = all.filter((x) => isRelevant(x.owner))
+  MAP.hidden = all.length - list.length
   let body = '', text = '' // text: drawn on the screen-pixel layer
   const shown = [] // planets drawn, with their position, for the names
   if (MAP.galaxy === 0) {
@@ -340,6 +370,7 @@ function renderMap(keepInfo) {
   el('map-tabs').innerHTML = [0, ...Array.from({ length: world.galaxies }, (_, i) => i + 1)]
     .map((g) => `<button data-g="${g}" class="${g === MAP.galaxy ? 'active' : ''}">${g === 0 ? 'All' : g}</button>`).join('')
   el('map-legend').innerHTML = `<span class="m-a0">&#9679;</span> ${esc(ALLIES[0])} <span class="m-a1">&#9679;</span> ${esc(slotTag(ALLIES[1]))} <span class="m-other">&#9679;</span> others <span class="m-moon-key">&#9679;</span> moon <span class="m-gate-key">&#9675;</span> jump gate`
+  el('map-filter').textContent = MAP.all ? 'Hide the players we do not care about' : `Showing what matters (${MAP.hidden ?? 0} planets hidden). Show everyone`
   el('map-hint').textContent = MAP.galaxy === 0 ? 'Tap a galaxy to open it. Pinch or double-tap to zoom. Arrows are flights with a known launch planet.'
     : 'Pinch or double-tap to zoom, drag to move. Planet 1 is the inner edge, planet 15 the outer. Tap a planet.'
   if (!el('map-find-list').children.length) el('map-find-list').innerHTML = world.players.map((p) => `<option value="${esc(p.name)}">`).join('')
@@ -539,6 +570,7 @@ function phalanxReport(coords, level) {
   return `<p class="hint">Level ${level}: sees ${range} system${range === 1 ? '' : 's'} each way. ${hit.length} planet${hit.length === 1 ? '' : 's'} in range: ${ours.length} ${esc(ALLIES[0])}, ${them.length} ${esc(slotTag(ALLIES[1]))}, ${hit.length - ours.length - them.length} others.</p>${list}${them.length > 15 ? `<p class="hint">...and ${them.length - 15} more.</p>` : ''}`
 }
 
+el('map-filter').onclick = () => { MAP.all = !MAP.all; renderMap() }
 el('map-tabs').onclick = (e) => {
   const b = e.target.closest('button')
   if (b) openGalaxy(Number(b.dataset.g))

@@ -76,7 +76,13 @@ const ownerAt = (world, coords) => world.byId.get(world.at.get(coords))
 
 async function loadWorld() {
   const [u, p, s, a] = await Promise.all([getXml('universe.xml'), getXml('players.xml'), getXml('serverData.xml'), getXml('alliances.xml')])
-  return buildWorld(u, p, s, a)
+  const world = buildWorld(u, p, s, a)
+  // total points per player (daily). Used by the map to hide weak players; the map still works without it.
+  world.score = new Map()
+  try {
+    for (const x of (await getXml('highscore.xml?category=1&type=0')).querySelectorAll('player')) world.score.set(x.getAttribute('id'), Number(x.getAttribute('score')))
+  } catch { /* no scores: the map just cannot tell who is weak */ }
+  return world
 }
 
 // systems that "count" for distance: empty ones and inactive-only ones are skipped, but the TARGET system always counts
