@@ -45,12 +45,13 @@
   <div id="app" hidden>
     <header>
       <h1>War Room</h1>
-      <span>
-        <button id="help-btn" aria-label="Help">?</button>
+      <button id="menu-btn" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <div id="menu" hidden>
+        <button id="help-btn">Help</button>
         <button id="notify-btn">Alerts</button>
-        <button id="rename">Name</button>
+        <button id="rename">Change name</button>
         <button id="signout">Sign out</button>
-      </span>
+      </div>
     </header>
 
     <nav id="views">
@@ -128,24 +129,27 @@
 
     <section id="map" hidden>
       <nav id="map-tabs"></nav>
-      <input id="map-find" list="map-find-list" type="search" placeholder="Find a player or coordinates (1:99:10)" autocomplete="off" enterkeyhint="search">
-      <datalist id="map-find-list"></datalist>
       <div id="map-stage">
         <svg id="map-svg" viewBox="0 0 400 400" role="img" aria-label="War map"></svg>
         <svg id="map-text" aria-hidden="true"></svg>
         <svg id="map-mini" viewBox="0 0 400 400" aria-label="Overview: tap to jump there" hidden></svg>
+        <p id="map-legend"></p>
+        <span id="map-zoom"></span>
         <div id="map-ctl">
           <button type="button" id="map-full" aria-label="Full screen">&#x26F6;</button>
+          <button type="button" id="map-search" aria-label="Find a player or coordinates">&#x1F50D;&#xFE0E;</button>
+          <button type="button" id="map-filter" aria-label="Show everyone">&#x1F441;&#xFE0E;</button>
           <button type="button" id="map-in" aria-label="Zoom in">+</button>
           <button type="button" id="map-out" aria-label="Zoom out">&minus;</button>
           <button type="button" id="map-reset" aria-label="Show everything" hidden>&#x21BA;</button>
         </div>
-        <span id="map-zoom"></span>
+        <div id="map-findbox" hidden>
+          <input id="map-find" list="map-find-list" type="search" placeholder="Player or coordinates (1:99:10)" autocomplete="off" enterkeyhint="search">
+          <datalist id="map-find-list"></datalist>
+        </div>
+        <p id="map-hint"></p>
+        <div id="map-info" hidden></div>
       </div>
-      <p id="map-legend" class="hint"></p>
-      <button type="button" id="map-filter" class="linkish"></button>
-      <p id="map-hint" class="hint"></p>
-      <div id="map-info"></div>
     </section>
 
     <section id="chat" hidden>
@@ -248,8 +252,8 @@
       <details>
         <summary>The map</summary>
         <p>Map shows the whole universe: the 7 galaxies sit in a ring (galaxy 7 is next to galaxy 1). Tap a galaxy, or a number, to open it. In a galaxy the systems run around the ring, and a planet's number is how far out it sits (1 inside, 15 outside). Orange is us, red is the second alliance (change it with the alliance box on Players), moons are the small light dots. Tap a planet to see who owns it; the owner's name is a link to their page. Arrows are flights with a known launch planet, in the flight colours.</p>
-        <p>Zoom with two fingers, a double-tap or the + and - buttons (up to 12x), and drag to move. Names appear as you zoom in, and the top-left corner shows which systems you are looking at. The small map in the corner shows where you are; tap it to jump. The square button makes the map full screen. Type a player name or coordinates in the box above the map to jump straight there.</p>
-        <p>To keep the map readable it hides inactive players, and players with no alliance who are weaker than our weakest DONUT player. DONUT, the second tab's alliance and the players you tap or search for always show. The button under the map shows everyone again.</p>
+        <p>The map fills the screen. Buttons on the right: full screen, search (a player name or coordinates), the eye (show everyone or hide the players we do not care about), zoom in and out, and reset. Zoom with two fingers or a double-tap too (up to 12x), and drag to move. Names appear as you zoom in, and the top-left corner shows which systems you are looking at. The small map in the corner shows where you are; tap it to jump. The square button makes the map full screen. Tap the magnifier to type a player name or coordinates and jump straight there.</p>
+        <p>To keep the map readable it hides inactive players, and players with no alliance who are weaker than our weakest DONUT player. DONUT, the second tab's alliance and the players you tap or search for always show. The eye button shows everyone again.</p>
         <p>Tap a planet that has a moon to record a jump gate and its phalanx level. Gates get a green ring, and the gates of one player are joined by a dotted line. A phalanx level shows a green wedge of the systems it can scan (level squared minus 1, each way), plus a list of the enemy planets inside it. Everyone sees what anyone saves. A pasted spy report on a moon fills these in by itself (when the probes could see its buildings).</p>
       </details>
       <details>
@@ -311,6 +315,7 @@
   <script src="/flight.js"></script>
   <script src="/calc.js"></script>
   <script src="/player.js"></script>
+  <script src="/menu.js"></script>
   <script src="/mention.js"></script>
   <script src="/plink.js"></script>
   <script src="/map.js"></script>

@@ -97,7 +97,7 @@ The box under the roster tabs takes any alliance tag or name (autocomplete). Tha
 
 ## Help button
 
-The "?" in the header opens a short how-to (install on iPhone and Android, alerts, reports, players, landings). The text is plain HTML in the `help-sheet` dialog in `public/index.html`; `public/help.js` just opens and closes it. Update the text there when something changes.
+The Help item in the header menu (the hamburger) opens a short how-to (install on iPhone and Android, alerts, reports, players, landings). The text is plain HTML in the `help-sheet` dialog in `public/index.html`; `public/help.js` just opens and closes it. Update the text there when something changes.
 
 ## Flights (landings with missions and categories)
 
@@ -134,3 +134,7 @@ Map filter: by default the map hides inactive players and players with no allian
 DONUT, the second tab's alliance and whoever is tapped or searched for always show; other alliances show unless inactive. The button under the map toggles "show everyone".
 
 @mention suggestions (`public/mention.js`): typing @ shows a strip of tappable names above the chat box (approved members whose display name is letters, digits, _ . - only, which is what mention alerts can match). Plain buttons, no native dropdown, so the phone keyboard is untouched.
+
+Layout: the header is one slim row with a hamburger menu (Help, Alerts, Change name, Sign out; `public/menu.js`). The Map screen fills the window and the page does not scroll
+(`body.map-active`): galaxy tabs on top, then the map with everything else as overlays (legend, zoom readout, overview, and buttons for full screen, search, the show-everyone eye, zoom and reset).
+Tapping a planet opens its details as a sheet over the bottom of the map, and the map slides so the planet stays visible above the sheet.
