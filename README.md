@@ -94,3 +94,7 @@ Not covered yet: reminders before a landing arrives (e.g. "lands in 10 minutes")
 ## Players: other alliances and planet strips
 
 The box under the roster tabs takes any alliance tag or name (autocomplete). That alliance takes the PMA tab; clear the box to get PMA back. Each card shows all of a player's planets left to right, galaxy 1 to 7, with a small dot for each moon. The star marks the capital. The OGame API does not say which planet is the capital, so we guess the oldest one (lowest planet id).
+
+## Help button
+
+The "?" in the header opens a short how-to (install on iPhone and Android, alerts, reports, players, landings). The text is plain HTML in the `help-sheet` dialog in `public/index.html`; `public/help.js` just opens and closes it. Update the text there when something changes.
