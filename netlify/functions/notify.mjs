@@ -11,7 +11,7 @@ import { sendPush } from '../lib/push.mjs'
 
 const json = (status, obj) => new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } })
 const RECENT_MS = 2 * 60 * 1000
-const MISSIONS = { attack: 'attack', acs_attack: 'ACS attack', acs_defend: 'ACS defend', transport: 'transport', deploy: 'deploy', espionage: 'espionage', harvest: 'harvest', expedition: 'expedition', moon_destruction: 'moon destruction', colonize: 'colonize' }
+const MISSIONS = { attack: 'attack', acs_attack: 'ACS attack', acs_defend: 'ACS defend', transport: 'transport', deploy: 'deploy', espionage: 'espionage', harvest: 'harvest', expedition: 'expedition', moon_destruction: 'moon destruction', colonize: 'colonize', return: 'return' }
 const CATS = { alert: 'ALERT', opportunity: 'Opportunity', info: 'Info' }
 
 function lands(arrivesAt) {
