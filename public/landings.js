@@ -42,7 +42,7 @@ function countdown(ms) {
 // "UncleDaddy" or "Dethmachien (DONUT)": who lives at these coordinates, once the universe data has loaded
 function ownerNote(coords) {
   const o = world && ownerAt(world, coords)
-  return o ? `<span class="l-owner">${esc(o.name)}${o.alliance ? ` (${esc(o.alliance)})` : ''}</span>` : ''
+  return o ? `<span class="l-owner">${playerLink(o.id, o.name)}${o.alliance ? ` (${esc(o.alliance)})` : ''}</span>` : ''
 }
 
 // an "attack" on a planet of our own alliance is really a move (also fixes ones entered before moves existed)
