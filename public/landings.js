@@ -163,6 +163,7 @@ el('say-fill').onclick = () => {
     : r.missing.length
     ? `Heard: ${heard}. Couldn't find: ${r.missing.join(', ')}. Please fill that in below.`
     : `Heard: ${heard}. Check it below, then tap Add landing.`
+  if (r.note) el('say-result').textContent += ' ' + r.note
 }
 
 el('landing-form').onsubmit = async (e) => {

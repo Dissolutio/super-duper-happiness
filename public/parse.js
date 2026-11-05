@@ -18,7 +18,7 @@ const MISSION_WORDS = [
   ['harvest', /\bharvest\w*|\brecycl\w*|\bdebris\b/],
   ['espionage', /\bspy\w*|\bspies\b|\bespionage\b|\bprobe\w*|\bscout\w*/],
   ['transport', /\btransport\w*|\bhaul\w*/],
-  ['deploy', /\bdeploy\w*|\bmov(?:e|es|ing)\b|\brelocat\w*|\btransfer\w*|\brebas\w*/],
+  ['deploy', /\breturn(?:s|ing)?\s+(?:to|home)\b|\bdeploy\w*|\bmov(?:e|es|ing)\b|\brelocat\w*|\btransfer\w*|\brebas\w*/],
   ['attack', /\battack\w*|\braid\w*|\bsmash\w*|\bhit(?:ting)?\b/],
 ]
 
@@ -33,7 +33,7 @@ function minutesIn(str) {
 
 function parseLanding(input) {
   let text = ' ' + input.toLowerCase().replace(/[,;]/g, ' ') + ' '
-  const out = { side: 'ours', galaxy: null, system: null, position: null, strength: '', hours: 0, minutes: 0, mission: '', origin: null, returnHours: 0, returnMinutes: 0, missing: [] }
+  const out = { side: 'ours', galaxy: null, system: null, position: null, strength: '', hours: 0, minutes: 0, mission: '', origin: null, note: '', returnHours: 0, returnMinutes: 0, missing: [] }
   const take = (re, fn) => { // find re, hand its match to fn, cut it out of the text
     const m = text.match(re)
     if (m) { fn(m); text = text.replace(m[0], ' ') }
@@ -68,6 +68,10 @@ function parseLanding(input) {
   take(/(\d+)\s*(?:minutes?|mins?)\b/, (m) => (out.minutes += Number(m[1])))
   out.hours += Math.floor(out.minutes / 60)
   out.minutes %= 60
+  // "returning home in 3 hours" only has one time: that is when it lands
+  if (!out.hours && !out.minutes && (out.returnHours || out.returnMinutes)) {
+    ;[out.hours, out.minutes, out.returnHours, out.returnMinutes] = [out.returnHours, out.returnMinutes, 0, 0]
+  }
   if (!out.hours && !out.minutes) out.missing.push('time')
 
   // how big: needs a scale (3m, 2 million, 500k) or a unit (200 battleships, 4M points)
@@ -86,7 +90,22 @@ function parseLanding(input) {
     ;[out.galaxy, out.system, out.position] = [Number(found[1]), Number(found[2]), Number(found[3])]
     text = text.replace(found[0], ' ')
   } else {
-    out.missing.push('coordinates')
+    // Speech-to-text often cuts the numbers in the wrong places ("1 159 7" heard as "1 15 97"). Glue three or four adjacent
+    // numbers together and see where galaxy / system / planet can be cut so that all three are valid. Only one way = use it.
+    const run = text.match(/\d+(?:\s*[:.\-\s]\s*\d+){2,3}/)
+    const digits = run ? run[0].replace(/\D/g, '') : ''
+    const ways = []
+    for (let sl = 1; sl <= 3; sl++) {
+      const [g, sy, p] = [Number(digits.slice(0, 1)), Number(digits.slice(1, 1 + sl)), digits.slice(1 + sl)]
+      if (p.length >= 1 && p.length <= 2 && g >= 1 && g <= MAX_GALAXY && sy >= 1 && sy <= 499 && Number(p) >= 1 && Number(p) <= 16) ways.push([g, sy, Number(p)])
+    }
+    if (run && ways.length === 1) {
+      ;[out.galaxy, out.system, out.position] = ways[0]
+      out.note = `Read the coordinates as ${ways[0].join(':')} (you said ${run[0].trim()}). Please check.`
+      text = text.replace(run[0], ' ')
+    } else {
+      out.missing.push('coordinates')
+    }
   }
 
   // a bare big number left over (e.g. "3000000") is the fleet size
