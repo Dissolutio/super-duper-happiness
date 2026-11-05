@@ -9,9 +9,16 @@
 </head>
 <body>
   <header>
+    <p class="sys">&#9650; SYSTEM MESSAGE</p>
     <h1>DONUT</h1>
     <p id="sub">Loading the universe...</p>
   </header>
+  <section id="recruit" aria-label="Recruiting">
+    <p class="sys">&#9733; NEW QUEST AVAILABLE</p>
+    <h2>Join the crawl</h2>
+    <p>DONUT is recruiting. Active players of any size, any class. We fly together, we hit together, and we keep each other's moons alive.</p>
+    <p class="how">To accept: in the game open <b>Alliance</b>, search for <b>DONUT</b> and send an application. Mention this page. Reward: friends, loot, and a 100% chance of drama.</p>
+  </section>
   <nav id="tabs" aria-label="Galaxy"></nav>
   <main>
     <div id="stage">
@@ -25,12 +32,14 @@
       </div>
     </div>
     <div id="card" hidden></div>
+    <div id="toast" role="status" aria-live="polite"></div>
   </main>
   <section id="members">
-    <h2>Members</h2>
+    <h2>Crawler leaderboard</h2>
+    <p class="note">Every crawler currently in DONUT, by points. Tap one to find their planets.</p>
     <div id="list"></div>
   </section>
-  <footer>Universe Jishui, USA. Built from the game's public data, refreshed daily. Not an official OGame site.</footer>
+  <footer>Universe Jishui, USA. Built from the game's public data, refreshed daily. Not an official OGame site. The System is not responsible for your fleet.</footer>
   <script src="/map.js"></script>
 </body>
 </html>

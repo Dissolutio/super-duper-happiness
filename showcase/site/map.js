@@ -126,8 +126,26 @@ function draw() {
 function tabs() {
   $('tabs').innerHTML = [0, ...Array.from({ length: W.galaxies }, (_, i) => i + 1)].map((g) => `<button type="button" data-g="${g}" class="${g === V.galaxy ? 'active' : ''}">${g === 0 ? 'All' : g}</button>`).join('')
 }
-function openGalaxy(g) { V.galaxy = g; V.selected = null; V.cx = 200; V.cy = 200; V.k = 1; $('card').hidden = true; tabs(); draw() }
+function openGalaxy(g) { if (g) achieve('g' + g, `Floor ${g} unlocked. You may now gawk at galaxy ${g}.`); if (g && SEEN.size >= 7 && [1,2,3,4,5,6,7].every((n) => SEEN.has('g' + n))) achieve('all', 'Cartographer! Every galaxy visited. Your prize box is in the mail. There is no mail.'); V.galaxy = g; V.selected = null; V.cx = 200; V.cy = 200; V.k = 1; $('card').hidden = true; tabs(); draw() }
 $('tabs').onclick = (e) => { const b = e.target.closest('button'); if (b) openGalaxy(Number(b.dataset.g)) }
+
+// ---- System pop-ups: one achievement the first time each thing happens, then flavour lines now and then ----
+const SEEN = new Set()
+let toastTimer = 0
+function toast(head, text) {
+  const t = $('toast')
+  t.innerHTML = `<p class="sys">${esc(head)}</p>${esc(text)}`
+  t.classList.add('on')
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => t.classList.remove('on'), 4200)
+}
+function achieve(key, text) { if (SEEN.has(key)) return; SEEN.add(key); toast('\u2605 NEW ACHIEVEMENT', text) }
+const OTHER_LINES = [
+  'That planet is not DONUT. The System has opinions about that, but is legally not allowed to share them.',
+  'Unaffiliated planet detected. Its owner could be in an alliance with good taste. Just saying.',
+  'Scanning... this crawler has no orange in their life. Tragic.',
+]
+let lineN = 0
 
 // ---- the card for a tapped planet ----
 function showCard(coords) {
@@ -137,6 +155,9 @@ function showCard(coords) {
   card.hidden = !x
   if (x) {
     const o = x.owner
+    if (o.us) achieve('us', `Friendly Territory! You found a DONUT planet. Reward: a warm feeling and absolutely no loot.`)
+    else if (!SEEN.has('other')) achieve('other', 'Tourist! You looked at someone else\'s planet. The System is mildly disappointed.')
+    else if (Math.random() < 0.35) toast('\u25B2 SYSTEM MESSAGE', OTHER_LINES[lineN++ % OTHER_LINES.length])
     card.innerHTML = `<div class="t">${esc(x.name)}${x.moon ? ' &#9790;' : ''} <span class="s">[${esc(coords)}]</span></div><div class="s">${o.us ? `<b class="us">${esc(o.name)}</b>` : esc(o.name)}${o.tag ? ` (${esc(o.tag)})` : ''} &middot; ${o.planets.length} planet${o.planets.length === 1 ? '' : 's'}</div>`
   }
   draw()
@@ -194,7 +215,7 @@ window.addEventListener('resize', () => draw())
 // ---- the member list ----
 function members() {
   const list = [...W.us].sort((a, z) => (W.score.get(z.id) ?? 0) - (W.score.get(a.id) ?? 0))
-  $('list').innerHTML = list.map((m) => `<button type="button" class="row" data-id="${esc(m.id)}"><span>${esc(m.name)}</span><span>${m.planets.length} planet${m.planets.length === 1 ? '' : 's'}${W.score.has(m.id) ? ` &middot; ${Math.round(W.score.get(m.id)).toLocaleString('en-US')} pts` : ''}</span></button>`).join('')
+  $('list').innerHTML = list.map((m, i) => `<button type="button" class="row" data-id="${esc(m.id)}"><span><span class="rk">#${i + 1}</span>${esc(m.name)}</span><span>${m.planets.length} planet${m.planets.length === 1 ? '' : 's'}${W.score.has(m.id) ? ` &middot; ${Math.round(W.score.get(m.id)).toLocaleString('en-US')} pts` : ''}</span></button>`).join('')
   const total = list.reduce((a, m) => a + m.planets.length, 0)
   $('sub').textContent = `${list.length} members, ${total} planets, universe Jishui (USA)`
 }
@@ -205,7 +226,8 @@ $('list').onclick = (e) => {
   if (!m?.planets.length) return
   openGalaxy(m.planets[0].g)
   V.find = m.id; draw()
+  achieve('find', `Stalker, the friendly kind! You tracked down ${m.name}.`)
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-load().then(() => { members(); tabs(); draw() }).catch(() => { $('sub').textContent = 'Could not load the game data. Try again in a minute.' })
+load().then(() => { members(); tabs(); draw(); setTimeout(() => toast('\u25B2 SYSTEM MESSAGE', 'Welcome, crawler. Orange planets are DONUT. Everything else is merely scenery.'), 600) }).catch(() => { $('sub').textContent = 'Could not load the game data. Try again in a minute.' })
