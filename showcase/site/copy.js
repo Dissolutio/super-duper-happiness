@@ -12,11 +12,11 @@
 const COPY = {
   // browser tab and search-engine snippet
   pageTitle: '{tag}, an OGame alliance',
-  pageDescription: 'Where {home} lives in the OGame universe Jishui (USA). Orange planets are ours.',
+  pageDescription: 'Where {home} lives in the OGame universe Jishui (USA). Orange planets are belong to us.',
 
   // top of the page
   headerLabel: '▲ SYSTEM MESSAGE',
-  loading: 'Loading the universe...',
+  loading: 'Mimic preparing...',
   loadFailed: 'Could not load the game data. Try again in a minute.',
   subline: '{members} members, {planets} planets, universe Jishui (USA)',
   pickerLabel: 'Looking at',
