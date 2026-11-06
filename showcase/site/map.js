@@ -12,6 +12,7 @@ const COORDS = /^[1-7]:\d{1,3}:\d{1,2}$/
 // ---- words: all of them live in copy.js (COPY). say() fills in {placeholders} and **bold**, and never lets HTML through. ----
 const C = typeof COPY === 'object' && COPY ? COPY : {}
 function fill(text, vars = {}) {
+  if (Array.isArray(text)) text = text.join(' ') // long copy is split into pieces, one per line
   return String(text ?? '').replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : k === 'tag' ? TAG : k === 'home' ? HOME : m))
 }
 const say = (text, vars) => esc(fill(text, vars)).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>') // safe HTML: escaped first, then bold
