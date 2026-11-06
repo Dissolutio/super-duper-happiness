@@ -1,4 +1,4 @@
-# DONUT vs PMA
+# DONUT ALLIANCE
 
 Throwaway OGame dashboard for the Jishui (s265-us) alliance war. Reads the public OGame XML API.
 
