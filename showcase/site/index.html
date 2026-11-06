@@ -10,8 +10,9 @@
 <body>
   <header>
     <p class="sys">&#9650; SYSTEM MESSAGE</p>
-    <h1>DONUT</h1>
+    <h1 id="title">DONUT</h1>
     <p id="sub">Loading the universe...</p>
+    <label id="pick-wrap">Looking at <select id="pick" aria-label="Alliance to show"><option>DONUT</option></select></label>
   </header>
   <section id="recruit" aria-label="Recruiting">
     <p class="sys">&#9733; NEW QUEST AVAILABLE</p>
@@ -22,8 +23,8 @@
   <nav id="tabs" aria-label="Galaxy"></nav>
   <main>
     <div id="stage">
-      <svg id="svg" role="img" aria-label="Map of the universe. Orange planets belong to DONUT."></svg>
-      <div id="legend"><span><i class="o">&#9679;</i> DONUT</span><span><i class="x">&#9679;</i> everyone else</span></div>
+      <svg id="svg" role="img" aria-label="Map of the universe. Orange planets belong to the chosen alliance."></svg>
+      <div id="legend"><span><i class="o">&#9679;</i> <b id="leg-tag">DONUT</b></span><span><i class="x">&#9679;</i> everyone else</span></div>
       <div id="zoomtxt"></div>
       <div id="ctl">
         <button type="button" id="zin" aria-label="Zoom in">+</button>
@@ -36,7 +37,7 @@
   </main>
   <section id="members">
     <h2>Crawler leaderboard</h2>
-    <p class="note">Every crawler currently in DONUT, by points. Tap one to find their planets.</p>
+    <p class="note">Every crawler currently in <span id="note-tag">DONUT</span>, by points. Tap one to find their planets.</p>
     <div id="list"></div>
   </section>
   <footer>Universe Jishui, USA. Built from the game's public data, refreshed daily. Not an official OGame site. The System is not responsible for your fleet.</footer>

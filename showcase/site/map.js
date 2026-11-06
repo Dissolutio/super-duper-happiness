@@ -1,14 +1,15 @@
 // The public alliance map. Standalone: it shares no code with the war room and talks only to /api/*.xml (the game's public files).
-// Orange = DONUT, everyone else is faint. Tap a galaxy to open it, pinch / wheel / buttons to zoom, drag to move.
+// Orange = the chosen alliance (DONUT unless ?a=TAG or the picker says otherwise), everyone else is faint. Tap a galaxy to open it, pinch / wheel / buttons to zoom, drag to move.
 'use strict'
-const TAG = 'DONUT'
+const HOME = 'DONUT' // our alliance: the default, and the one the recruiting box is about
+let TAG = HOME
 const TAU = Math.PI * 2, MAX_ZOOM = 12
 const $ = (id) => document.getElementById(id)
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
 const f1 = (n) => n.toFixed(1), f2 = (n) => n.toFixed(2)
 const COORDS = /^[1-7]:\d{1,3}:\d{1,2}$/
 
-const W = { galaxies: 7, systems: 499, planets: [], players: new Map(), score: new Map(), us: [] }
+const W = { galaxies: 7, systems: 499, planets: [], players: new Map(), score: new Map(), us: [], alliances: [] }
 const V = { galaxy: 0, cx: 200, cy: 200, k: 1, selected: null, find: null }
 
 async function getXml(name) {
@@ -24,7 +25,7 @@ async function load() {
   const tagOf = new Map([...a.querySelectorAll('alliance')].map((x) => [x.getAttribute('id'), x.getAttribute('tag')]))
   for (const x of p.querySelectorAll('player')) {
     const tag = tagOf.get(x.getAttribute('alliance')) ?? ''
-    W.players.set(x.getAttribute('id'), { id: x.getAttribute('id'), name: x.getAttribute('name') ?? '?', tag, us: tag.toLowerCase() === TAG.toLowerCase(), planets: [] })
+    W.players.set(x.getAttribute('id'), { id: x.getAttribute('id'), name: x.getAttribute('name') ?? '?', tag, us: false, planets: [] })
   }
   for (const x of u.querySelectorAll('planet')) {
     const coords = x.getAttribute('coords') ?? ''
@@ -36,7 +37,13 @@ async function load() {
     W.planets.push(pl)
     owner.planets.push(pl)
   }
-  W.us = [...W.players.values()].filter((x) => x.us)
+  // alliances with at least one planet, biggest first (by member count)
+  const count = new Map()
+  for (const pl of W.players.values()) if (pl.tag && pl.planets.length) count.set(pl.tag, (count.get(pl.tag) ?? 0) + 1)
+  W.alliances = [...a.querySelectorAll('alliance')]
+    .map((x) => ({ tag: x.getAttribute('tag') ?? '', name: x.getAttribute('name') ?? '', n: count.get(x.getAttribute('tag')) ?? 0 }))
+    .filter((x) => x.tag && x.n > 0)
+    .sort((x, z) => z.n - x.n || x.tag.localeCompare(z.tag))
   try { // points are nice to have: the page works without them
     for (const x of (await getXml('highscore.xml?category=1&type=0')).querySelectorAll('player')) W.score.set(x.getAttribute('id'), Number(x.getAttribute('score')))
   } catch { /* no points */ }
@@ -141,7 +148,7 @@ function toast(head, text) {
 }
 function achieve(key, text) { if (SEEN.has(key)) return; SEEN.add(key); toast('\u2605 NEW ACHIEVEMENT', text) }
 const OTHER_LINES = [
-  'That planet is not DONUT. The System has opinions about that, but is legally not allowed to share them.',
+  'That planet is not one of theirs. The System has opinions about that, but is legally not allowed to share them.',
   'Unaffiliated planet detected. Its owner could be in an alliance with good taste. Just saying.',
   'Scanning... this crawler has no orange in their life. Tragic.',
 ]
@@ -155,7 +162,7 @@ function showCard(coords) {
   card.hidden = !x
   if (x) {
     const o = x.owner
-    if (o.us) achieve('us', `Friendly Territory! You found a DONUT planet. Reward: a warm feeling and absolutely no loot.`)
+    if (o.us) achieve('us', TAG === HOME ? 'Friendly Territory! You found a DONUT planet. Reward: a warm feeling and absolutely no loot.' : `Recon! You found a ${TAG} planet. The System has made a note of it.`)
     else if (!SEEN.has('other')) achieve('other', 'Tourist! You looked at someone else\'s planet. The System is mildly disappointed.')
     else if (Math.random() < 0.35) toast('\u25B2 SYSTEM MESSAGE', OTHER_LINES[lineN++ % OTHER_LINES.length])
     card.innerHTML = `<div class="t">${esc(x.name)}${x.moon ? ' &#9790;' : ''} <span class="s">[${esc(coords)}]</span></div><div class="s">${o.us ? `<b class="us">${esc(o.name)}</b>` : esc(o.name)}${o.tag ? ` (${esc(o.tag)})` : ''} &middot; ${o.planets.length} planet${o.planets.length === 1 ? '' : 's'}</div>`
@@ -212,12 +219,36 @@ $('zout').onclick = zoomBtn(1 / 1.6)
 $('zreset').onclick = () => { V.cx = 200; V.cy = 200; V.k = 1; draw() }
 window.addEventListener('resize', () => draw())
 
+// ---- which alliance is shown ----
+function setAlliance(tag, quiet) {
+  const hit = W.alliances.find((x) => x.tag.toLowerCase() === String(tag).toLowerCase())
+  TAG = hit ? hit.tag : HOME
+  for (const pl of W.players.values()) pl.us = pl.tag.toLowerCase() === TAG.toLowerCase()
+  W.us = [...W.players.values()].filter((x) => x.us)
+  V.find = null; V.selected = null; $('card').hidden = true
+  $('title').textContent = TAG
+  $('leg-tag').textContent = TAG
+  $('note-tag').textContent = TAG
+  $('pick').value = TAG
+  document.title = `${TAG}, an OGame alliance`
+  // shareable link: ?a=TAG (nothing for our own alliance)
+  const url = new URL(location.href)
+  if (TAG === HOME) url.searchParams.delete('a'); else url.searchParams.set('a', TAG)
+  history.replaceState(null, '', url)
+  members(); draw()
+  if (!quiet && TAG !== HOME) achieve('spy-' + TAG, `Spyglass! You are now peeking at ${TAG}. Bold. The System approves.`)
+}
+function picker() {
+  $('pick').innerHTML = W.alliances.map((x) => `<option value="${esc(x.tag)}">${esc(x.tag)}${x.name && x.name !== x.tag ? ` - ${esc(x.name.length > 28 ? x.name.slice(0, 27) + '...' : x.name)}` : ''} (${x.n})</option>`).join('')
+}
+$('pick').onchange = () => setAlliance($('pick').value)
+
 // ---- the member list ----
 function members() {
   const list = [...W.us].sort((a, z) => (W.score.get(z.id) ?? 0) - (W.score.get(a.id) ?? 0))
   $('list').innerHTML = list.map((m, i) => `<button type="button" class="row" data-id="${esc(m.id)}"><span><span class="rk">#${i + 1}</span>${esc(m.name)}</span><span>${m.planets.length} planet${m.planets.length === 1 ? '' : 's'}${W.score.has(m.id) ? ` &middot; ${Math.round(W.score.get(m.id)).toLocaleString('en-US')} pts` : ''}</span></button>`).join('')
   const total = list.reduce((a, m) => a + m.planets.length, 0)
-  $('sub').textContent = `${list.length} members, ${total} planets, universe Jishui (USA)`
+  $('sub').textContent = `${list.length} member${list.length === 1 ? '' : 's'}, ${total} planets, universe Jishui (USA)`
 }
 // tapping a member opens the galaxy of their first planet and rings all their planets
 $('list').onclick = (e) => {
@@ -230,4 +261,4 @@ $('list').onclick = (e) => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-load().then(() => { members(); tabs(); draw(); setTimeout(() => toast('\u25B2 SYSTEM MESSAGE', 'Welcome, crawler. Orange planets are DONUT. Everything else is merely scenery.'), 600) }).catch(() => { $('sub').textContent = 'Could not load the game data. Try again in a minute.' })
+load().then(() => { picker(); setAlliance(new URLSearchParams(location.search).get('a') ?? HOME, true); tabs(); setTimeout(() => toast('\u25B2 SYSTEM MESSAGE', `Welcome, crawler. Orange planets are ${TAG}. Everything else is merely scenery.`), 600) }).catch(() => { $('sub').textContent = 'Could not load the game data. Try again in a minute.' })

@@ -45,3 +45,6 @@ h1 { text-shadow: 0 0 18px #f5a03c55; }
 #toast { position: fixed; left: 50%; bottom: 18px; transform: translate(-50%, 140%); max-width: min(92vw, 420px); padding: 10px 14px; background: #101018f2; border: 1px solid #7ee0b5; border-radius: 10px; color: var(--text); font-size: .9rem; box-shadow: 0 6px 30px #000a; transition: transform .25s ease; pointer-events: none; z-index: 5; }
 #toast.on { transform: translate(-50%, 0); }
 #toast .sys { color: #7ee0b5; }
+#pick-wrap { display: flex; align-items: center; gap: 8px; margin: 8px 0 0; color: var(--dim); font-size: .85rem; }
+#pick { flex: 1; min-width: 0; max-width: 320px; padding: 8px 10px; background: var(--card); color: var(--text); border: 1px solid var(--a0); border-radius: 8px; font: inherit; font-size: 1rem; }
+#legend b { font-weight: inherit; }
