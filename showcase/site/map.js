@@ -9,6 +9,20 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&
 const f1 = (n) => n.toFixed(1), f2 = (n) => n.toFixed(2)
 const COORDS = /^[1-7]:\d{1,3}:\d{1,2}$/
 
+// ---- words: all of them live in copy.js (COPY). say() fills in {placeholders} and **bold**, and never lets HTML through. ----
+const C = typeof COPY === 'object' && COPY ? COPY : {}
+function fill(text, vars = {}) {
+  return String(text ?? '').replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : k === 'tag' ? TAG : k === 'home' ? HOME : m))
+}
+const say = (text, vars) => esc(fill(text, vars)).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>') // safe HTML: escaped first, then bold
+const plain = (text, vars) => fill(text, vars).replace(/\*\*(.+?)\*\*/g, '$1')
+// every element with data-copy="key" gets that text
+function applyCopy() {
+  for (const node of document.querySelectorAll('[data-copy]')) node.innerHTML = say(C[node.dataset.copy])
+  document.title = plain(C.pageTitle)
+  document.querySelector('meta[name=description]')?.setAttribute('content', plain(C.pageDescription))
+}
+
 const W = { galaxies: 7, systems: 499, planets: [], players: new Map(), score: new Map(), us: [], alliances: [] }
 const V = { galaxy: 0, cx: 200, cy: 200, k: 1, selected: null, find: null }
 
@@ -131,27 +145,24 @@ function draw() {
 }
 
 function tabs() {
-  $('tabs').innerHTML = [0, ...Array.from({ length: W.galaxies }, (_, i) => i + 1)].map((g) => `<button type="button" data-g="${g}" class="${g === V.galaxy ? 'active' : ''}">${g === 0 ? 'All' : g}</button>`).join('')
+  $('tabs').innerHTML = [0, ...Array.from({ length: W.galaxies }, (_, i) => i + 1)].map((g) => `<button type="button" data-g="${g}" class="${g === V.galaxy ? 'active' : ''}">${g === 0 ? esc(C.allGalaxiesTab ?? 'All') : g}</button>`).join('')
 }
-function openGalaxy(g) { if (g) achieve('g' + g, `Floor ${g} unlocked. You may now gawk at galaxy ${g}.`); if (g && SEEN.size >= 7 && [1,2,3,4,5,6,7].every((n) => SEEN.has('g' + n))) achieve('all', 'Cartographer! Every galaxy visited. Your prize box is in the mail. There is no mail.'); V.galaxy = g; V.selected = null; V.cx = 200; V.cy = 200; V.k = 1; $('card').hidden = true; tabs(); draw() }
+function openGalaxy(g) { if (g) achieve('g' + g, A.galaxy, { g }); if (g && Array.from({ length: W.galaxies }, (_, i) => i + 1).every((n) => SEEN.has('g' + n))) achieve('all', A.allGalaxies); V.galaxy = g; V.selected = null; V.cx = 200; V.cy = 200; V.k = 1; $('card').hidden = true; tabs(); draw() }
 $('tabs').onclick = (e) => { const b = e.target.closest('button'); if (b) openGalaxy(Number(b.dataset.g)) }
 
 // ---- System pop-ups: one achievement the first time each thing happens, then flavour lines now and then ----
 const SEEN = new Set()
 let toastTimer = 0
-function toast(head, text) {
+function toast(head, text, vars) {
   const t = $('toast')
-  t.innerHTML = `<p class="sys">${esc(head)}</p>${esc(text)}`
+  t.innerHTML = `<p class="sys">${say(head)}</p>${say(text, vars)}`
   t.classList.add('on')
   clearTimeout(toastTimer)
   toastTimer = setTimeout(() => t.classList.remove('on'), 4200)
 }
-function achieve(key, text) { if (SEEN.has(key)) return; SEEN.add(key); toast('\u2605 NEW ACHIEVEMENT', text) }
-const OTHER_LINES = [
-  'That planet is not one of theirs. The System has opinions about that, but is legally not allowed to share them.',
-  'Unaffiliated planet detected. Its owner could be in an alliance with good taste. Just saying.',
-  'Scanning... this crawler has no orange in their life. Tragic.',
-]
+const A = C.achievements ?? {}
+function achieve(key, text, vars) { if (SEEN.has(key) || !text) return; SEEN.add(key); toast(C.achievementLabel, text, vars) }
+const OTHER_LINES = Array.isArray(C.otherPlanetLines) ? C.otherPlanetLines : []
 let lineN = 0
 
 // ---- the card for a tapped planet ----
@@ -162,9 +173,9 @@ function showCard(coords) {
   card.hidden = !x
   if (x) {
     const o = x.owner
-    if (o.us) achieve('us', TAG === HOME ? 'Friendly Territory! You found a DONUT planet. Reward: a warm feeling and absolutely no loot.' : `Recon! You found a ${TAG} planet. The System has made a note of it.`)
-    else if (!SEEN.has('other')) achieve('other', 'Tourist! You looked at someone else\'s planet. The System is mildly disappointed.')
-    else if (Math.random() < 0.35) toast('\u25B2 SYSTEM MESSAGE', OTHER_LINES[lineN++ % OTHER_LINES.length])
+    if (o.us) achieve('us-' + TAG, TAG === HOME ? A.foundHome : A.foundPicked)
+    else if (!SEEN.has('other')) achieve('other', A.firstOther)
+    else if (OTHER_LINES.length && Math.random() < (Number(C.otherPlanetChance) || 0)) toast(C.systemLabel, OTHER_LINES[lineN++ % OTHER_LINES.length])
     card.innerHTML = `<div class="t">${esc(x.name)}${x.moon ? ' &#9790;' : ''} <span class="s">[${esc(coords)}]</span></div><div class="s">${o.us ? `<b class="us">${esc(o.name)}</b>` : esc(o.name)}${o.tag ? ` (${esc(o.tag)})` : ''} &middot; ${o.planets.length} planet${o.planets.length === 1 ? '' : 's'}</div>`
   }
   draw()
@@ -228,15 +239,14 @@ function setAlliance(tag, quiet) {
   V.find = null; V.selected = null; $('card').hidden = true
   $('title').textContent = TAG
   $('leg-tag').textContent = TAG
-  $('note-tag').textContent = TAG
   $('pick').value = TAG
-  document.title = `${TAG}, an OGame alliance`
+  applyCopy()
   // shareable link: ?a=TAG (nothing for our own alliance)
   const url = new URL(location.href)
   if (TAG === HOME) url.searchParams.delete('a'); else url.searchParams.set('a', TAG)
   history.replaceState(null, '', url)
   members(); draw()
-  if (!quiet && TAG !== HOME) achieve('spy-' + TAG, `Spyglass! You are now peeking at ${TAG}. Bold. The System approves.`)
+  if (!quiet && TAG !== HOME) achieve('spy-' + TAG, A.pickedOther)
 }
 function picker() {
   $('pick').innerHTML = W.alliances.map((x) => `<option value="${esc(x.tag)}">${esc(x.tag)}${x.name && x.name !== x.tag ? ` - ${esc(x.name.length > 28 ? x.name.slice(0, 27) + '...' : x.name)}` : ''} (${x.n})</option>`).join('')
@@ -248,7 +258,7 @@ function members() {
   const list = [...W.us].sort((a, z) => (W.score.get(z.id) ?? 0) - (W.score.get(a.id) ?? 0))
   $('list').innerHTML = list.map((m, i) => `<button type="button" class="row" data-id="${esc(m.id)}"><span><span class="rk">#${i + 1}</span>${esc(m.name)}</span><span>${m.planets.length} planet${m.planets.length === 1 ? '' : 's'}${W.score.has(m.id) ? ` &middot; ${Math.round(W.score.get(m.id)).toLocaleString('en-US')} pts` : ''}</span></button>`).join('')
   const total = list.reduce((a, m) => a + m.planets.length, 0)
-  $('sub').textContent = `${list.length} member${list.length === 1 ? '' : 's'}, ${total} planets, universe Jishui (USA)`
+  $('sub').innerHTML = say(C.subline, { members: list.length, planets: total, n: list.length })
 }
 // tapping a member opens the galaxy of their first planet and rings all their planets
 $('list').onclick = (e) => {
@@ -257,8 +267,10 @@ $('list').onclick = (e) => {
   if (!m?.planets.length) return
   openGalaxy(m.planets[0].g)
   V.find = m.id; draw()
-  achieve('find', `Stalker, the friendly kind! You tracked down ${m.name}.`)
+  achieve('find', A.foundMember, { name: m.name })
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-load().then(() => { picker(); setAlliance(new URLSearchParams(location.search).get('a') ?? HOME, true); tabs(); setTimeout(() => toast('\u25B2 SYSTEM MESSAGE', `Welcome, crawler. Orange planets are ${TAG}. Everything else is merely scenery.`), 600) }).catch(() => { $('sub').textContent = 'Could not load the game data. Try again in a minute.' })
+applyCopy()
+$('sub').innerHTML = say(C.loading)
+load().then(() => { picker(); setAlliance(new URLSearchParams(location.search).get('a') ?? HOME, true); tabs(); if (C.welcome) setTimeout(() => toast(C.systemLabel, C.welcome), 600) }).catch(() => { $('sub').innerHTML = say(C.loadFailed) })

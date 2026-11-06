@@ -152,5 +152,6 @@ The map's lens button cycles through ways of looking at the universe (`public/le
 A separate, public, no-login page for the alliance: the universe map with DONUT (or any alliance picked at the top, shareable as `?a=TAG`) in orange and everyone else faint, galaxy tabs, pinch/wheel zoom, a tap card per planet, and the member list (tap a member to find them). It is deliberately its own site, not a route of the war room.
 - Standalone code in `showcase/site/` (no shared scripts, no Supabase, no keys, nothing from `public/`). It reads only the game's public files through four fixed redirects in `showcase/netlify.toml`, cached 15 minutes.
 - Deploy: in Netlify, **Add new site > Import from Git**, pick this repo, set **Base directory** to `showcase` (it reads `showcase/netlify.toml`, publish dir `site`), no build command. Then choose a neutral site name (Site configuration > Change site name), because the name is the URL.
+- **All the words** (title, recruiting box, achievements, System remarks, footer) live in `showcase/site/copy.js`, with editing rules at the top. Text there can't inject HTML: it is escaped, and only `**bold**` and `{placeholders}` are understood.
 - Preview locally: `SITE=showcase/site node server.js`.
 - It shows only what anyone can already see in the game's galaxy view. It must never show war-room data (flights, moons, scans, lenses, intel).

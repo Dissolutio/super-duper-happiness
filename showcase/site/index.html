@@ -9,22 +9,22 @@
 </head>
 <body>
   <header>
-    <p class="sys">&#9650; SYSTEM MESSAGE</p>
+    <p class="sys" data-copy="headerLabel"></p>
     <h1 id="title">DONUT</h1>
-    <p id="sub">Loading the universe...</p>
-    <label id="pick-wrap">Looking at <select id="pick" aria-label="Alliance to show"><option>DONUT</option></select></label>
+    <p id="sub"></p>
+    <label id="pick-wrap"><span data-copy="pickerLabel"></span> <select id="pick" aria-label="Alliance to show"><option>DONUT</option></select></label>
   </header>
   <section id="recruit" aria-label="Recruiting">
-    <p class="sys">&#9733; NEW QUEST AVAILABLE</p>
-    <h2>Join the crawl</h2>
-    <p>DONUT is recruiting. Active players of any size, any class. We fly together, we hit together, and we keep each other's moons alive.</p>
-    <p class="how">To accept: in the game open <b>Alliance</b>, search for <b>DONUT</b> and send an application. Mention this page. Reward: friends, loot, and a 100% chance of drama.</p>
+    <p class="sys" data-copy="recruitLabel"></p>
+    <h2 data-copy="recruitTitle"></h2>
+    <p data-copy="recruitBody"></p>
+    <p class="how" data-copy="recruitHow"></p>
   </section>
   <nav id="tabs" aria-label="Galaxy"></nav>
   <main>
     <div id="stage">
       <svg id="svg" role="img" aria-label="Map of the universe. Orange planets belong to the chosen alliance."></svg>
-      <div id="legend"><span><i class="o">&#9679;</i> <b id="leg-tag">DONUT</b></span><span><i class="x">&#9679;</i> everyone else</span></div>
+      <div id="legend"><span><i class="o">&#9679;</i> <b id="leg-tag">DONUT</b></span><span><i class="x">&#9679;</i> <span data-copy="legendOthers"></span></span></div>
       <div id="zoomtxt"></div>
       <div id="ctl">
         <button type="button" id="zin" aria-label="Zoom in">+</button>
@@ -36,11 +36,12 @@
     <div id="toast" role="status" aria-live="polite"></div>
   </main>
   <section id="members">
-    <h2>Crawler leaderboard</h2>
-    <p class="note">Every crawler currently in <span id="note-tag">DONUT</span>, by points. Tap one to find their planets.</p>
+    <h2 data-copy="leaderboardTitle"></h2>
+    <p class="note" data-copy="leaderboardNote"></p>
     <div id="list"></div>
   </section>
-  <footer>Universe Jishui, USA. Built from the game's public data, refreshed daily. Not an official OGame site. The System is not responsible for your fleet.</footer>
+  <footer data-copy="footer"></footer>
+  <script src="/copy.js"></script>
   <script src="/map.js"></script>
 </body>
 </html>
