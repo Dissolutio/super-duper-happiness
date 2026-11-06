@@ -13,7 +13,7 @@
 const LENSES = [
   { key: 'relevant', icon: '\u{1F441}', name: 'What matters', note: 'DONUT, the second alliance and active players that count' },
   { key: 'everyone', icon: '\u{1F310}', name: 'Everyone', note: 'every player in the universe' },
-  { key: 'fleets', icon: '\u{1F680}', name: 'Big fleets', note: 'most of their points are fleet and defence. Hotter = bigger share' },
+  { key: 'fleets', icon: '\u{1F680}', name: 'Big fleets', note: 'big fleets that are most of the account, worth crashing. Hotter = better' },
   { key: 'ripe', icon: '\u{1F3AF}', name: 'Ripe targets', note: 'big fleet, little research, no alliance, inactive or close to us. Hotter = riper' },
 ]
 const TARGETS_SHOWN = 40
@@ -79,14 +79,35 @@ function systemsFromUs(id, oursByGalaxy) {
   return best
 }
 
-// Who could we hit? Not us, not on vacation or banned (the game will not let us), and at least as big as our weakest player.
+// A target must be worth the trip: its fleet (military points, times the ships share if we scanned it) has to be at least
+// MIN_FLEET_VS_US of a typical DONUT member's military, and its total at least MIN_TOTAL_VS_US of a typical DONUT total.
+// That weeds out new and tiny players whose points happen to be mostly ships. Tune here.
+const MIN_FLEET_VS_US = 0.25
+const MIN_TOTAL_VS_US = 0.25
+
+const median = (xs) => { const v = xs.filter((x) => x > 0).sort((a, b) => a - b); return v.length ? v[v.length >> 1] : 0 }
+// a typical DONUT member: median total and military points
+function ourTypical() {
+  if (MAP.typical?.world === world) return MAP.typical
+  const ours = world.players.filter((p) => p.alliance && p.alliance.toLowerCase() === ALLIES[0].toLowerCase()).map((p) => world.stats?.get(p.id) ?? {})
+  MAP.typical = { world, total: median(ours.map((s) => s.total)), mil: median(ours.map((s) => s.mil)) }
+  return MAP.typical
+}
+// estimated fleet points: military points, minus the defence share if a recent scan told us
+function fleetPoints(s, scan) { return (s.mil ?? 0) * (scan ? scan.shipShare : 1) }
+
+// Who could we hit? Not us, not on vacation or banned (the game will not let us), and big enough to be worth it (see above).
 function huntPool() {
+  const us = ourTypical()
   const floor = Number.isFinite(weakestOurs()) ? weakestOurs() : 0
   return world.players.filter((p) => {
     if (p.alliance && p.alliance.toLowerCase() === ALLIES[0].toLowerCase()) return false
     if (/[vb]/.test(p.status ?? '')) return false
     const s = playerStats(p.id)
-    return !!s && s.total >= floor && (world.byPlayer.get(p.id)?.length ?? 0) > 0
+    if (!s || !(world.byPlayer.get(p.id)?.length > 0) || s.total < floor) return false
+    if (us.total > 0 && s.total < us.total * MIN_TOTAL_VS_US) return false
+    if (us.mil > 0 && fleetPoints(s, scanOf(p.id)) < us.mil * MIN_FLEET_VS_US) return false
+    return true
   })
 }
 
@@ -99,8 +120,10 @@ function huntBoard(lensKey) {
     const s = playerStats(p.id)
     // Military points are ships plus defence. If we have scanned them, count only the ships' share: a turtle drops down, a fleeter stays.
     const sc = scanOf(p.id)
-    return [p.id, { ...s, scan: sc, fleetShare: sc ? s.fleetShare * sc.shipShare : s.fleetShare }]
+    return [p.id, { ...s, scan: sc, fleetShare: sc ? s.fleetShare * sc.shipShare : s.fleetShare, fleetPts: fleetPoints(s, sc) }]
   }))
+  const sizePct = percentileOf(pool.map((p) => stats.get(p.id).fleetPts))
+  const us = ourTypical()
   const fleetPct = percentileOf(pool.map((p) => stats.get(p.id).fleetShare))
   const resPct = percentileOf(pool.map((p) => stats.get(p.id).resShare))
   const oursByGalaxy = new Map()
@@ -113,17 +136,19 @@ function huntBoard(lensKey) {
     const s = stats.get(p.id)
     const away = systemsFromUs(p.id, oursByGalaxy)
     const idle = /[iI]/.test(p.status ?? '')
-    const fleet = fleetPct(s.fleetShare), neglect = 1 - resPct(s.resShare)
+    const fleet = fleetPct(s.fleetShare), size = sizePct(s.fleetPts), neglect = 1 - resPct(s.resShare)
     const near = Number.isFinite(away) ? 1 - Math.min(away, 80) / 80 : 0
-    // ripeness: the fleet matters most, then being close to us, then the other weaknesses (weights add up to 1)
-    const ripe = 0.4 * fleet + 0.2 * near + 0.15 * neglect + 0.15 * (p.alliance ? 0 : 1) + 0.1 * (idle ? 1 : 0)
+    // ripeness: the fleet matters most (how big, and how much of the account it is), then being close to us,
+    // then the other weaknesses (weights add up to 1)
+    const ripe = 0.25 * size + 0.25 * fleet + 0.2 * near + 0.1 * neglect + 0.1 * (p.alliance ? 0 : 1) + 0.1 * (idle ? 1 : 0)
     const why = [s.scan ? `ships about ${pctText(s.fleetShare)} of points (military ${pctText(s.mil / s.total)}, ${pctText(s.scan.shipShare)} of it ships when scanned ${ageText(s.scan.newest)} ago)` : `fleet ${pctText(s.fleetShare)} of points (${shortNum(s.mil ?? 0)}, may include defence)`]
+    if (us.mil > 0) why.push(`fleet about ${(s.fleetPts / us.mil).toFixed(s.fleetPts < us.mil ? 1 : 0)}x a typical ${ALLIES[0]} military`)
     if (s.scan && s.scan.shipShare < 0.4) why.push('turtle: mostly defence when scanned')
     if (neglect > 0.7) why.push(`research only ${pctText(s.resShare)}`)
     if (!p.alliance) why.push('no alliance to defend them')
     if (idle) why.push('inactive, so no one is watching the fleet')
     if (Number.isFinite(away) && away <= 40) why.push(away === 0 ? 'next to one of our planets' : `${away} systems from our nearest planet`)
-    return { id: p.id, score: lensKey === 'ripe' ? ripe : fleet + s.fleetShare * 1e-3, why }
+    return { id: p.id, score: lensKey === 'ripe' ? ripe : 0.5 * fleet + 0.5 * size + s.fleetShare * 1e-3, why }
   })
   rows.sort((a, b) => b.score - a.score)
   const map = new Map()
