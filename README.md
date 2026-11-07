@@ -141,11 +141,12 @@ Tapping a planet opens its details as a sheet over the bottom of the map, and th
 
 ## Map lenses
 
-The map's lens button cycles through ways of looking at the universe (`public/lens.js`): What matters (default), Everyone, Big fleets and Ripe targets. The two hunting lenses rank non-DONUT players (not on vacation or banned, at least as big as our weakest DONUT player) and show the best 40, heat-coloured, with a "why" line in the planet sheet.
+The map's lens button cycles through ways of looking at the universe (`public/lens.js`): What matters (default), Everyone, Big fleets, Ripe targets and Ripe anywhere. The hunting lenses rank non-DONUT players (not on vacation or banned, at least as big as our weakest DONUT player) and show the best 40, heat-coloured, with a "why" line in the planet sheet.
 
 - Data: the daily highscore files for total, economy, research and military points (`loadWorld` in `flight.js` fills `world.stats`). Military points include defence, so a high fleet share can also be a turtle.
 - Size floor: a target's fleet (military points, times the ships share when scanned) must be at least 25% of a typical (median) DONUT member's military, and its total at least 25% of a typical DONUT total (`MIN_FLEET_VS_US`, `MIN_TOTAL_VS_US` in `lens.js`). This drops new and tiny accounts that are "all ships" but not worth a trip.
 - Big fleets: half fleet share, half fleet size (both percentile ranks).
+- Ripe anywhere: Ripe targets without distance, for choosing where to place a planet: 0.3 fleet size + 0.3 fleet share + 0.15 neglected research + 0.125 no alliance + 0.125 inactive.
 - Ripe targets: 0.25 fleet size + 0.25 fleet share + 0.2 closeness to our planets + 0.1 neglected research + 0.1 no alliance + 0.1 inactive. All shares are percentile ranks within the pool, so there are no fixed cutoffs; tune the weights in `huntBoard`.
 - Scans (`supabase/scans.sql`, run once): spy reports added by pasting the page also save the value of the ships and defence on that planet or moon (`scans` table, written by `add_scan()`, readable by members). The lenses use scans up to 14 days old: ships / (ships + defence) scales the player's military share, so turtles drop and fleeters stay. Reports added by ID do not include these numbers yet. A report that shows neither (both 0) is ignored, since hidden and empty look the same.
 
