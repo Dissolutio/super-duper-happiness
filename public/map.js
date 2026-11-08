@@ -235,6 +235,11 @@ function phalanxWedge(g, s, level) {
 }
 
 // jump gates: a ring round each gate moon, and a faint line between the gates of one player
+// gate lines are noisy: off by default once someone turns them off (remembered on this device).
+// The selected player's own gate lines always show.
+let gateLines = true
+try { gateLines = localStorage.getItem('mapGateLines') !== 'off' } catch { /* no storage: keep the default */ }
+
 function mapGates(px) {
   let rings = '', lines = ''
   const byOwner = new Map()
@@ -245,9 +250,11 @@ function mapGates(px) {
     if (!byOwner.has(owner)) byOwner.set(owner, [])
     byOwner.get(owner).push(coords)
   }
-  for (const list of byOwner.values()) {
+  const focus = MAP.picked ?? (MAP.selected ? world.at.get(MAP.selected) : null)
+  for (const [owner, list] of byOwner) {
     const pts = list.map((c) => { const [g, s, p] = c.split(':').map(Number); return mapPoint(g, s, p) })
     for (const q of pts) if (q) rings += `<circle class="m-gate" cx="${f2(q[0] + px(5))}" cy="${f2(q[1] - px(5))}" r="${f2(px(4.5))}"/>`
+    if (!gateLines && owner !== focus) continue
     for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) {
       if (pts[i] && pts[j]) lines += `<line class="m-gateline" x1="${f1(pts[i][0])}" y1="${f1(pts[i][1])}" x2="${f1(pts[j][0])}" y2="${f1(pts[j][1])}"/>`
     }
@@ -416,7 +423,13 @@ function renderMap(keepInfo) {
     .map((g) => `<button data-g="${g}" class="${g === MAP.galaxy ? 'active' : ''}">${g === 0 ? 'All' : g}</button>`).join('')
   const hunting = MAP.lens >= 2
   const heat = hunting ? `<span><i class="m-h5">&#9679;</i> best</span><span><i class="m-h3">&#9679;</i> good</span><span><i class="m-h1">&#9679;</i> maybe</span>` : `<span><i class="m-other">&#9679;</i> others</span>`
-  el('map-legend').innerHTML = `<span><i class="m-a0">&#9679;</i> ${esc(ALLIES[0])}</span><span><i class="m-a1">&#9679;</i> ${esc(slotTag(ALLIES[1]))}</span>${heat}<span><i class="m-moon-key">&#9679;</i> moon &nbsp;<i class="m-gate-key">&#9675;</i> gate</span>`
+  el('map-legend').innerHTML = `<span><i class="m-a0">&#9679;</i> ${esc(ALLIES[0])}</span><span><i class="m-a1">&#9679;</i> ${esc(slotTag(ALLIES[1]))}</span>${heat}<span><i class="m-moon-key">&#9679;</i> moon &nbsp;<i class="m-gate-key">&#9675;</i> gate</span><button type="button" id="map-gatelines" class="${gateLines ? 'on' : ''}" aria-pressed="${gateLines}">&#9675;&#8943;&#9675; gate lines ${gateLines ? 'on' : 'off'}</button>`
+  el('map-gatelines').onclick = () => {
+    gateLines = !gateLines
+    try { localStorage.setItem('mapGateLines', gateLines ? 'on' : 'off') } catch { /* fine, just not remembered */ }
+    renderMap(true)
+    mapSay(gateLines ? 'Gate lines on.' : 'Gate lines off. A selected player still shows theirs.')
+  }
   const lens = LENSES[MAP.lens]
   el('map-filter').classList.toggle('on', MAP.lens !== 0)
   el('map-filter').textContent = lens.icon
