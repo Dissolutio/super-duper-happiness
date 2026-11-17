@@ -184,10 +184,18 @@ function resetView() { MAP.view = { cx: 200, cy: 200, k: 1 } }
 
 // ---- moons, gates, phalanx ----
 
+// for screens other than the map (the players screen): load moon info once, then call done() to redraw
+function ensureMoons(done) {
+  if (MAP.moonsAt) return Promise.resolve()
+  MAP.moonsLoading ??= loadMoons().finally(() => { MAP.moonsLoading = null })
+  return done ? MAP.moonsLoading.then(done) : MAP.moonsLoading
+}
+
 async function loadMoons() {
   try {
     const rows = await sb('/rest/v1/moons?select=galaxy,system,position,gate,phalanx', { token: await getToken() })
     MAP.moons = new Map(rows.map((m) => [`${m.galaxy}:${m.system}:${m.position}`, m]))
+    MAP.moonsAt = Date.now()
   } catch (e) {
     if (e.status === 401) return logout()
     mapSay('Could not load moon info: ' + e.message) // the map still works without it
@@ -619,10 +627,14 @@ function showPicked() {
   const [g, s, p] = MAP.selected.split(':')
   const known = MAP.moons.get(MAP.selected)
   const level = MAP.preview ?? known?.phalanx
+  const own = ownPlanets(sel)
+  const at = own.findIndex((x) => x.coords === MAP.selected)
+  const nav = own.length > 1 ? `<div class="planet-nav"><button type="button" id="pl-prev" aria-label="Previous planet">&#8249;</button><span>Planet ${at + 1} of ${own.length}</span><button type="button" id="pl-next">Next planet &#8250;</button></div>` : ''
   box.innerHTML = `
     <button type="button" id="map-info-close" aria-label="Close">&#x2715;</button>
     <div class="card"><div class="top"><span class="name">${esc(pl?.name ?? '?')}${pl?.moon ? ' &#9790;' : ''}</span>${coordChip(g, s, p)}</div>
     <p class="hint">${o ? playerLink(o.id, o.name) : '?'}${o?.alliance ? ` (${esc(o.alliance)})` : ''} · ${world.byPlayer.get(sel)?.length ?? 0} planets</p>
+    ${nav}
     ${targetLines(sel)}
     ${scanLine(MAP.selected)}
     ${pl?.moon ? `
@@ -634,6 +646,29 @@ function showPicked() {
       <p id="map-msg" class="msg"></p>
       <div id="moon-report">${moonReport(MAP.selected, level)}</div>` : '<p id="map-msg" class="msg"></p>'}
     </div>`
+}
+
+// a player's planets in coordinate order (galaxy, system, position), for the next / previous buttons
+function ownPlanets(id) {
+  const key = (c) => c.split(':').reduce((a, n) => a * 1000 + Number(n), 0)
+  return [...(world.byPlayer.get(id) ?? [])].sort((a, b) => key(a.coords) - key(b.coords))
+}
+
+// open the planet's galaxy, zoom in on it (keeping it in the upper part, above the sheet) and select it
+function goToPlanet(coords) {
+  const [g, s, p] = coords.split(':').map(Number)
+  if (MAP.galaxy !== g) { MAP.galaxy = g; resetView() }
+  MAP.view.k = Math.max(MAP.view.k, 3)
+  MAP.selected = coords
+  MAP.picked = world.at.get(coords) ?? null
+  MAP.preview = null
+  const q = mapPoint(g, s, p)
+  if (q) {
+    MAP.view.cx = q[0]
+    MAP.view.cy = q[1] + viewBox().h * 0.22
+    clampView()
+  }
+  renderMap()
 }
 
 // points split and, on a hunting lens, why this player is on the list
@@ -682,6 +717,13 @@ el('map-tabs').onclick = (e) => {
   if (b) openGalaxy(Number(b.dataset.g))
 }
 el('map-info').onclick = async (e) => {
+  const step = e.target.closest('#pl-next') ? 1 : e.target.closest('#pl-prev') ? -1 : 0
+  if (step) {
+    const own = ownPlanets(world.at.get(MAP.selected))
+    const i = own.findIndex((x) => x.coords === MAP.selected)
+    if (own.length) goToPlanet(own[(i + step + own.length) % own.length].coords)
+    return
+  }
   if (e.target.closest('#map-info-close')) {
     MAP.selected = null
     MAP.picked = null

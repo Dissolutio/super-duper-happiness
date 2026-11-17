@@ -23,10 +23,23 @@ function planetStrip(planets) {
     const x = ((g - 1) * (W + gap) + ((s - 1) / (S - 1)) * W).toFixed(1)
     if (p === cap) out += `<polygon class="ps-star" points="${starPoints(x, 24, 11)}"/>`
     else out += `<circle class="ps-planet" cx="${x}" cy="24" r="4.5"/>`
-    if (p.moon) out += `<circle class="ps-moon" cx="${(+x + 7).toFixed(1)}" cy="14" r="3.2"/>`
+    if (!p.moon) continue
+    const mx = (+x + 7).toFixed(1), info = moonInfo(p.coords)
+    out += `<circle class="ps-moon" cx="${mx}" cy="14" r="3.2"/>`
+    if (info?.gate) out += `<circle class="ps-gate" cx="${mx}" cy="14" r="6"/>` // jump gate: green ring round the moon
+    if (info?.phalanx > 0) out += `<text class="ps-phx" x="${mx}" y="4">${info.phalanx}</text>` // phalanx level above it
   }
   const moons = planets.filter((p) => p.moon).length
-  return `<svg class="pstrip" viewBox="0 0 ${G * (W + gap) - gap} 58" role="img" aria-label="${planets.length} planets, ${moons} moons">${out}</svg>`
+  const gates = planets.filter((p) => moonInfo(p.coords)?.gate).length
+  return `<svg class="pstrip" viewBox="0 -14 ${G * (W + gap) - gap} 72" role="img" aria-label="${planets.length} planets, ${moons} moons, ${gates} jump gates">${out}</svg>`
+}
+
+// what we know about the moon at these coordinates: { gate, phalanx } (from the map's moon list), or null
+const moonInfo = (coords) => (typeof MAP !== 'undefined' ? MAP.moons.get(coords) : null) ?? null
+// short text for planet rows: "moon, jump gate, phalanx 5"
+function moonText(coords) {
+  const m = moonInfo(coords)
+  return [m?.gate ? 'jump gate' : '', m?.phalanx > 0 ? `phalanx ${m.phalanx}` : ''].filter(Boolean).join(', ')
 }
 
 function starPoints(cx, cy, r) {
@@ -69,6 +82,7 @@ function rosterEntries() {
 }
 
 function renderRoster() {
+  if (typeof ensureMoons === 'function' && !MAP.moonsAt) ensureMoons(() => renderRoster())
   if (world && !el('alliance-list').children.length) fillAllianceList()
   el('roster-tabs').innerHTML = [['known', 'Known'], ...ALLIES.map((a) => [a, slotTag(a)])]
     .map(([f, label]) => `<button data-f="${esc(f)}" class="${f === roster.filter ? 'active' : ''}">${esc(label)}</button>`).join('')
@@ -127,6 +141,7 @@ el('intel-list').onclick = (e) => {
 
 async function openPlayer(id) {
   if (!world) await loadCalc()
+  if (typeof ensureMoons === 'function') await ensureMoons() // gates and phalanx levels for the planet strip
   const p = playerEntry(id)
   const r = p.row
   const t = r?.tech ?? {}
@@ -135,7 +150,8 @@ async function openPlayer(id) {
   const planetRows = planets.map((x) => {
     const [g, s, pos] = x.coords.split(':')
     const secs = calcFlightTo(x.coords)
-    return `<div class="planet-row">${coordChip(g, s, pos)} <span>${esc(x.name)}${x.moon ? ' &#9790;' : ''}</span>${secs != null ? `<span class="t">${fmtTime(secs)}</span>` : ''}</div>`
+    const mt = x.moon ? moonText(x.coords) : ''
+    return `<div class="planet-row">${coordChip(g, s, pos)} <span>${esc(x.name)}${x.moon ? ' &#9790;' : ''}${mt ? ` <small class="moon-tags">${esc(mt)}</small>` : ''}</span>${secs != null ? `<span class="t">${fmtTime(secs)}</span>` : ''}</div>`
   }).join('')
   const speeds = SHIPS.filter((s) => r?.speed_bonus?.[s.id] != null).map((s) => `${esc(s.name)} ${r.speed_bonus[s.id]}%`).join(' &middot; ')
   const c = r?.combat_pct ?? {}
@@ -154,7 +170,7 @@ async function openPlayer(id) {
 
     <h3>Planets${world ? ` (${planets.length})` : ''}</h3>
     ${planetStrip(planets)}
-    ${planets.length ? '<p class="hint">Star = capital. Small dot = moon.</p>' : ''}
+    ${planets.length ? '<p class="hint">Star = capital. Small dot = moon, a green ring round it = jump gate, a green number above it = phalanx level.</p>' : ''}
     ${world ? (planets.length ? `
       <p class="hint">${hasFrom ? `Flight times ${esc(calcSummary())}. Change them in the flight calculator.` : 'Fill in From in the flight calculator to see flight times here.'}</p>
       ${planetRows}` : '<p class="hint">No planets known for this player.</p>')
