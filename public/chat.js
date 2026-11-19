@@ -1,8 +1,7 @@
 // Chat: one view per channel, new messages arrive by polling every few seconds.
 // Needs auth.js (sb, getToken) and app.js (el, esc, $). Channels are the buttons in #views (see index.html).
 const POLL_MS = 4000
-const GAME_URL = 'https://s265-us.ogame.gameforge.com/game/index.php'
-const MAX_GALAXY = 7 // Jishui has 7 galaxies (serverData.xml)
+const MAX_GALAXY = GALAXIES // from config.js
 
 const chat = { channel: null, lastId: 0, busy: false, timer: null, lastTime: null } // lastTime = when the newest message shown was sent
 

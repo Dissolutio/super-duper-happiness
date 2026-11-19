@@ -157,3 +157,8 @@ A separate, public, no-login page for the alliance: the universe map with DONUT 
 - **All the words** (title, recruiting box, achievements, System remarks, footer) live in `showcase/site/copy.js`, with editing rules at the top. Text there can't inject HTML: it is escaped, and only `**bold**` and `{placeholders}` are understood.
 - Preview locally: `SITE=showcase/site node server.js`.
 - It shows only what anyone can already see in the game's galaxy view. It must never show war-room data (flights, moons, scans, lenses, intel).
+
+## Settings (`public/config.js`)
+Everything that ties the app to one server and one war lives in `public/config.js`: game server, galaxies, our and the enemy alliance tag, the report-lookup switch, the Supabase URL and publishable key, and the public push key. Everything in it is public.
+
+On every Netlify deploy, `scripts/build.mjs` checks that file and writes the files that depend on it: `public/_redirects` (the proxies to the game's public API, and the report lookup if it is on), `public/_headers` (security headers with your Supabase address), and the public alliance page's `site-config.js` and `_redirects`. Those generated files are not committed. A mistake in `config.js`, for example a **secret** key pasted where the publishable key goes, stops the deploy with an explanation. Run `node scripts/build.mjs` to check it yourself; `node server.js` uses the same settings.

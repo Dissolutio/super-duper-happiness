@@ -39,7 +39,7 @@ function countdown(ms) {
   return `${m}m ${String(sec).padStart(2, '0')}s`
 }
 
-// "UncleDaddy" or "Dethmachien (DONUT)": who lives at these coordinates, once the universe data has loaded
+// "SomePlayer" or "OtherPlayer (DONUT)": who lives at these coordinates, once the universe data has loaded
 function ownerNote(coords) {
   const o = world && ownerAt(world, coords)
   return o ? `<span class="l-owner">${playerLink(o.id, o.name)}${o.alliance ? ` (${esc(o.alliance)})` : ''}</span>` : ''

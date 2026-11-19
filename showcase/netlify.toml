@@ -1,29 +1,11 @@
 # The PUBLIC alliance page. Deploy it as its OWN Netlify site (a second site from this same repo) with "Base directory" set to
 # "showcase". Nothing from the war room (public/, supabase, functions) is published by this site, it has no login and no database.
 [build]
+  command = "node ../scripts/build.mjs"
   publish = "site"
 
-# Only the four public game files the map needs are passed on to the OGame server; nothing else.
-[[redirects]]
-  from = "/api/universe.xml"
-  to = "https://s265-us.ogame.gameforge.com/api/universe.xml"
-  status = 200
-[[redirects]]
-  from = "/api/players.xml"
-  to = "https://s265-us.ogame.gameforge.com/api/players.xml"
-  status = 200
-[[redirects]]
-  from = "/api/alliances.xml"
-  to = "https://s265-us.ogame.gameforge.com/api/alliances.xml"
-  status = 200
-[[redirects]]
-  from = "/api/serverData.xml"
-  to = "https://s265-us.ogame.gameforge.com/api/serverData.xml"
-  status = 200
-[[redirects]]
-  from = "/api/highscore.xml"
-  to = "https://s265-us.ogame.gameforge.com/api/highscore.xml"
-  status = 200
+# The proxies to the game's public files are written by ../scripts/build.mjs (as site/_redirects) from ../public/config.js,
+# so the server and alliance are set in one place. Only those public files are passed on, nothing else.
 
 [[headers]]
   for = "/*"

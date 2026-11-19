@@ -7,7 +7,9 @@ const fs = require('fs')
 const path = require('path')
 
 const PORT = 3000
-const BASE = process.env.OGAME_BASE || 'https://s265-us.ogame.gameforge.com'
+const { config: CFG, problems } = require('./scripts/read-config.cjs').readConfig() // public/config.js
+if (problems.length) { console.error('public/config.js needs fixing:\n - ' + problems.join('\n - ')); process.exit(1) }
+const BASE = process.env.OGAME_BASE || `https://${CFG.OGAME_SERVER}.ogame.gameforge.com`
 const CACHE_MS = 5 * 60 * 1000 // the API only updates hourly/daily, don't hammer it
 const PUBLIC = path.join(__dirname, process.env.SITE || 'public') // SITE=showcase/site previews the public alliance page
 const TYPES = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.png': 'image/png', '.webmanifest': 'application/manifest+json' }
@@ -16,7 +18,7 @@ const cache = {} // url -> { time, body }
 
 // Report lookup by ID (third-party service, see README). Only this exact URL shape is passed on; anything else is a 404.
 const REPORT_HOST = 'https://ogapi.faw-kes.de'
-const REPORT_PATH = /^\/ogapi\/v1\/report\/((?:sr|cr)-us-265-[0-9a-f]{40})\/true$/
+const REPORT_PATH = CFG.REPORT_LOOKUP ? new RegExp(`^/ogapi/v1/report/((?:sr|cr)-${CFG.REPORT_PREFIX}-[0-9a-f]{40})/true$`) : /^$/ // lookup off: nothing matches
 
 http
   .createServer(async (req, res) => {

@@ -98,10 +98,10 @@ function parseCombat(doc, a, json) {
   return { kind: 'combat', via: 'html', hash: a('hashcode'), at: Number(a('timestamp')), coords: a('coords'), members: unique }
 }
 
-// ---- Report ID lookup (the short "sr-us-265-..." / "cr-us-265-..." id from a report's API-key button) ----
+// ---- Report ID lookup (the short "sr-<community>-<server>-..." / "cr-..." id from a report's API-key button) ----
 // Goes through our own server to a third-party service (see README), so the answer is less trusted than a pasted page.
 
-const REPORT_ID = /^(sr|cr)-us-265-[0-9a-f]{40}$/
+const REPORT_ID = new RegExp(`^(sr|cr)-${REPORT_PREFIX}-[0-9a-f]{40}$`) // REPORT_PREFIX from config.js, e.g. us-265
 const CLASS_NAMES = { 1: 'Collector', 2: 'General', 3: 'Discoverer' }
 
 // "one or more report ids, nothing else" -> the list of ids, otherwise null
@@ -111,6 +111,7 @@ function reportIds(text) {
 }
 
 async function fetchReport(id) {
+  if (!REPORT_LOOKUP) return { error: 'Looking up reports by id is switched off for this war room. Paste the whole report page instead.' }
   let json
   try {
     const r = await fetch(`/ogapi/v1/report/${id}/true`, { signal: AbortSignal.timeout(15000) })

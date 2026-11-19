@@ -1,5 +1,5 @@
 // ---- config: alliance tags to track (case-insensitive). First = us, second = enemy. ----
-const ALLIES = ['DONUT', 'PMA']
+const ALLIES = [OUR_ALLIANCE, ENEMY_ALLIANCE] // from config.js
 // players.xml status letters
 const STATUS = { v: 'vacation', i: 'inactive', I: 'long inactive', b: 'banned', o: 'outlaw', a: 'admin' }
 

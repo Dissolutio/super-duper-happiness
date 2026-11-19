@@ -1,7 +1,7 @@
 // The public alliance map. Standalone: it shares no code with the war room and talks only to /api/*.xml (the game's public files).
 // Orange = the chosen alliance (DONUT unless ?a=TAG or the picker says otherwise), everyone else is faint. Tap a galaxy to open it, pinch / wheel / buttons to zoom, drag to move.
 'use strict'
-const HOME = 'DONUT' // our alliance: the default, and the one the recruiting box is about
+const HOME = typeof SITE === 'object' ? SITE.home : 'DONUT' // our alliance (from site-config.js, made from public/config.js)
 let TAG = HOME
 const TAU = Math.PI * 2, MAX_ZOOM = 12
 const $ = (id) => document.getElementById(id)
