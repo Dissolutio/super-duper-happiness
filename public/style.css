@@ -262,3 +262,7 @@ a.plink { color: #8ab4ff; text-decoration: underline; text-decoration-style: dot
 
 /* the demo page's marker (public/demo/) */
 .demo-pill { display: inline-block; vertical-align: middle; margin-left: 6px; padding: 2px 8px; border-radius: 999px; background: #7a1fa2; color: #fff; font-size: .7rem; font-weight: 700; letter-spacing: .08em; }
+
+/* Data tab: player cards open the player's page */
+.card.tappable { cursor: pointer; }
+.card.tappable:active { filter: brightness(1.15); }

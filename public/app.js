@@ -126,8 +126,8 @@ function renderPlayers() {
   el('players').innerHTML = sorted.map((m) => {
     const badges = [...m.status].map((s) => `<span class="badge">${esc(STATUS[s] ?? s)}</span>`).join('')
     return `
-      <div class="card c${state.active}">
-        <div class="top"><span class="name">${esc(m.name)}${badges}</span><span class="rank">#${m.rank === 99999 ? '–' : num(m.rank)}</span></div>
+      <div class="card c${state.active} tappable" data-id="${esc(m.id)}">
+        <div class="top"><span class="name">${playerLink(m.id, m.name)}${badges}</span><span class="rank">#${m.rank === 99999 ? '–' : num(m.rank)}</span></div>
         <dl>
           <div><dt>Points</dt><dd>${short(m.points)}</dd></div>
           <div><dt>Eco</dt><dd>${short(m.eco)}</dd></div>
@@ -138,6 +138,14 @@ function renderPlayers() {
       </div>`
   }).join('')
 }
+
+// tapping anywhere on a card opens that player's page, like tapping the name (plink.js)
+el('players').addEventListener('click', (e) => {
+  const card = e.target.closest('.card[data-id]')
+  if (!card || e.target.closest('a')) return
+  showView('players')
+  openPlayer(card.dataset.id)
+})
 
 // ---- wiring ----
 const state = { data: null, active: 0, sort: 'rank' }
