@@ -131,3 +131,6 @@ el('intel-go').onclick = async () => {
     el('intel-go').disabled = false
   }
 }
+
+// report lookup switched off in config.js: say so instead of offering it
+if (!REPORT_LOOKUP && el('lookup-hint')) el('lookup-hint').innerHTML = '<b>Report ids are switched off here.</b> Paste the whole report page instead (see below).'

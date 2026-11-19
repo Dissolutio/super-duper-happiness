@@ -9,6 +9,8 @@ const path = require('path')
 const PORT = 3000
 const { config: CFG, problems } = require('./scripts/read-config.cjs').readConfig() // public/config.js
 if (problems.length) { console.error('public/config.js needs fixing:\n - ' + problems.join('\n - ')); process.exit(1) }
+// write the generated files (proxies, headers, the demo page) the same way a Netlify deploy does
+require('child_process').execFileSync(process.execPath, [path.join(__dirname, 'scripts', 'build.mjs')], { stdio: 'inherit' })
 const BASE = process.env.OGAME_BASE || `https://${CFG.OGAME_SERVER}.ogame.gameforge.com`
 const CACHE_MS = 5 * 60 * 1000 // the API only updates hourly/daily, don't hammer it
 const PUBLIC = path.join(__dirname, process.env.SITE || 'public') // SITE=showcase/site previews the public alliance page
@@ -53,7 +55,7 @@ http
 
     // static files, only from ./public (resolve + prefix check blocks ../ tricks)
     const urlPath = decodeURIComponent(req.url.split('?')[0])
-    const file = path.resolve(PUBLIC, '.' + (urlPath === '/' ? '/index.html' : urlPath))
+    const file = path.resolve(PUBLIC, '.' + (urlPath.endsWith('/') ? urlPath + 'index.html' : urlPath)) // / and /demo/ serve their index.html
     if (file.startsWith(PUBLIC + path.sep) && fs.existsSync(file) && fs.statSync(file).isFile()) {
       res.setHeader('Content-Type', TYPES[path.extname(file)] || 'application/octet-stream')
       return res.end(fs.readFileSync(file))

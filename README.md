@@ -165,3 +165,9 @@ On every Netlify deploy, `scripts/build.mjs` checks that file and writes the fil
 
 ## Updating the database
 `supabase/setup.sql` always builds the latest database for a new install. An existing database is moved forward with the numbered files in `supabase/migrations/` (see the README there): check `select version from public.schema_version;` and run every newer file once, in order. A database built from the old loose files (now in `supabase/legacy/`, including DONUT's own) runs `0001-from-legacy-files.sql` first, which also allows galaxies up to 9.
+
+## Demo (`/demo/`)
+A no-login demo of the whole app at `/demo/` on any deploy (and `http://localhost:3000/demo/` with `node server.js`). It shows an invented universe, "Crumbspace" (s999-us), with DONUT against an invented enemy, GRIM: about 420 players, 60 alliances, flights, chat, moons with gates and phalanxes, scans and spy intel. Every name except DONUT is made up from syllables; the shape (how many players are inactive, planets per player, busy galaxies and slots) copies a real universe.
+- Files: `public/demo/config.js` (fake settings), `public/demo/data.js` (the seeded universe), `public/demo/demo.js` (answers every request in memory). `scripts/build.mjs` makes `public/demo/index.html` from `public/index.html`.
+- It cannot touch a real database: requests never leave the page (demo.js answers them), its security policy allows no outside address, and it keeps its own pretend login, so a real War Room login in the same browser is never read or changed.
+- Anything added in the demo is gone on reload. Alerts and report-id lookups are off.
