@@ -16,11 +16,11 @@ API docs (unofficial): https://gist.github.com/psmolak/409d038fb4a9157aecf25c841
 
 Only invited, approved people get in. One-time setup:
 
-1. Supabase dashboard -> SQL Editor -> run `supabase/schema.sql`.
+1. Supabase dashboard -> SQL Editor -> run `supabase/setup.sql` (the whole database, once). Already have a database? See "Updating the database" below instead.
 2. Authentication -> Sign In / Providers -> turn OFF "Allow new users to sign up". Set minimum password length to 10+.
 3. Authentication -> URL Configuration -> Site URL = your Netlify URL; add `http://localhost:3000` to Redirect URLs.
 4. Authentication -> Users -> Invite user (yourself first). Click the email link, choose a password.
-5. Run the "approve + admin" SQL at the bottom of `schema.sql` with your email.
+5. Run the "approve + admin" SQL at the bottom of `setup.sql` with your email.
 
 Each new player: invite them in step 4, they set a password from the email link, then you run the "approve a player" SQL.
 
@@ -28,12 +28,12 @@ Each new player: invite them in step 4, they set a password from the email link,
 
 ## Chat
 
-Run `supabase/chat.sql` (after `schema.sql`). Channels are rows in `public.channels` plus a button in `#views` in `public/index.html`.
+Channels are rows in `public.channels` plus a button in `#views` in `public/index.html`.
 Messages are plain text; `2:45:8` / `[2:45:8]` become tappable chips that open a coordinate card (big separate galaxy / system / planet numbers, tap one to copy, plus "Open in browser"); `@name` is highlighted. New messages arrive by polling every 4s.
 
 ## Landings
 
-Run `supabase/landings.sql` (after `schema.sql`). Pinned at the top of Targets: a list of fleets landing (ours or enemy incoming) with live
+Pinned at the top of Targets: a list of fleets landing (ours or enemy incoming) with live
 countdowns in each viewer's timezone, and a collapsed "+ Add a landing" form. Arrival time is computed on the server (now + minutes from now).
 
 "Say it all in one go" (top of the add-landing form) uses `public/parse.js` to turn a sentence like
@@ -41,7 +41,7 @@ countdowns in each viewer's timezone, and a collapsed "+ Add a landing" form. Ar
 Digits only (phone dictation writes "45" not "forty five").
 
 ## Players (intel from pasted reports)
-Run `supabase/intel.sql` in the Supabase SQL editor (after `schema.sql`). On the Players tab, paste an opened spy or combat report
+On the Players tab, paste an opened spy or combat report
 (browser OGame: Inspect the report, copy the `messagedetails` element's outerHTML), **or just paste report ids** (see below). The app reads it in your browser
 (`public/reports.js`) and sends a small summary to the database through `add_intel()`; the raw page is never stored.
 
@@ -72,12 +72,12 @@ After a paste the app says how many players were updated, or "No new intel" (alr
 Phones and computers get a notification for: an enemy landing, one of our attacks or fleet moves, or someone writing `@yourname` in chat. Each device picks what it wants (Alerts button, top right).
 The message is encrypted on our server for that one device, so Google/Apple/Mozilla's push services only pass along something they can't read.
 
-How it works: the app saves each device's push address (`supabase/push.sql`). After someone adds a landing or an @mention, their app asks our Netlify function (`netlify/functions/notify.mjs`) to tell the others.
+How it works: the app saves each device's push address (the `push_subscriptions` table). After someone adds a landing or an @mention, their app asks our Netlify function (`netlify/functions/notify.mjs`) to tell the others.
 The function checks the caller's login, looks up what they just added in the database (the caller can't choose the text), sends once per landing/message, and only to real push-service addresses.
 `netlify/lib/push.mjs` is the encryption, written with Node's built-in crypto and checked against the example in RFC 8291.
 
 ### One-time setup
-1. Run `supabase/push.sql` in the Supabase SQL editor.
+1. The database part is already in `supabase/setup.sql`.
 2. On your own computer: `node scripts/vapid.mjs`. It prints a PUBLIC and a PRIVATE key.
 3. Put the PUBLIC key in `public/config.js` as `VAPID_PUBLIC_KEY` and commit it (it is meant to be public).
 4. In Netlify > Site configuration > Environment variables, add (mark the secret ones as secret):
@@ -101,7 +101,7 @@ The Help item in the header menu (the hamburger) opens a short how-to (install o
 
 ## Flights (landings with missions and categories)
 
-Run `supabase/flights.sql` once (after `landings.sql` and `landings-move.sql`; if you ran it before "return" existed, also run `flights-return.sql`). Each flight now has a mission (attack, ACS attack, ACS defend,
+Each flight now has a mission (attack, ACS attack, ACS defend,
 transport, deploy, espionage, harvest, expedition, moon destruction, colonize, return), an optional launch planet, an optional return time, how we know
 (event list, phalanx, probe, ally), and a category the app picks:
 
@@ -123,11 +123,11 @@ Zoom (pinch, double-tap, wheel, + / -, up to 12x) changes only the SVG viewBox w
 (dots and text stay a steady size on screen, planet names appear from 3.5x without overlapping, only planets near the screen are drawn).
 The overview in the corner shows the visible part; the find box jumps to a player (fits their planets in their main galaxy) or to coordinates.
 
-Moons: run `supabase/moons.sql` once. Tap a planet that has a moon, tick "Has a jump gate" and/or enter its phalanx level, and save (stored in `moons`, readable by approved members, written only through `set_moon()`).
+Moons: Tap a planet that has a moon, tick "Has a jump gate" and/or enter its phalanx level, and save (stored in `moons`, readable by approved members, written only through `set_moon()`).
 Gates are drawn as green rings joined by dotted lines per owner; a phalanx level draws the systems it reaches (level squared minus 1, each way, wrapping round the galaxy) and lists the second alliance's planets in range. Until the SQL is run the map still works, only saving moons fails.
 
 Moons from spy reports: a spy report on a moon that shows its buildings (pasted page or report id) sets that moon's phalanx level (building 42) and jump gate (building 43)
-through `set_moon_seen()`. Only a report newer than what we already know counts (`observed_at`); typed-in values count as seen "now". If you ran `moons.sql` before this existed, run `supabase/moons-reports.sql` once.
+through `set_moon_seen()`. Only a report newer than what we already know counts (`observed_at`); typed-in values count as seen "now".
 Until then a moon report still updates the player, and the paste result says the moon could not be saved.
 
 Map filter: by default the map hides inactive players and players with no alliance who are weaker (total points, `highscore.xml?category=1&type=0`) than our weakest DONUT player.
@@ -148,7 +148,7 @@ The map's lens button cycles through ways of looking at the universe (`public/le
 - Big fleets: half fleet share, half fleet size (both percentile ranks).
 - Ripe anywhere: Ripe targets without distance, for choosing where to place a planet: 0.3 fleet size + 0.3 fleet share + 0.15 neglected research + 0.125 no alliance + 0.125 inactive.
 - Ripe targets: 0.25 fleet size + 0.25 fleet share + 0.2 closeness to our planets + 0.1 neglected research + 0.1 no alliance + 0.1 inactive. All shares are percentile ranks within the pool, so there are no fixed cutoffs; tune the weights in `huntBoard`.
-- Scans (`supabase/scans.sql`, run once): spy reports added by pasting the page also save the value of the ships and defence on that planet or moon (`scans` table, written by `add_scan()`, readable by members). The lenses use scans up to 14 days old: ships / (ships + defence) scales the player's military share, so turtles drop and fleeters stay. Reports added by ID do not include these numbers yet. A report that shows neither (both 0) is ignored, since hidden and empty look the same.
+- Scans: spy reports added by pasting the page also save the value of the ships and defence on that planet or moon (`scans` table, written by `add_scan()`, readable by members). The lenses use scans up to 14 days old: ships / (ships + defence) scales the player's military share, so turtles drop and fleeters stay. Reports added by ID do not include these numbers yet. A report that shows neither (both 0) is ignored, since hidden and empty look the same.
 
 ## Public alliance page (`showcase/`)
 A separate, public, no-login page for the alliance: the universe map with DONUT (or any alliance picked at the top, shareable as `?a=TAG`) in orange and everyone else faint, galaxy tabs, pinch/wheel zoom, a tap card per planet, and the member list (tap a member to find them). It is deliberately its own site, not a route of the war room.
@@ -162,3 +162,6 @@ A separate, public, no-login page for the alliance: the universe map with DONUT 
 Everything that ties the app to one server and one war lives in `public/config.js`: game server, galaxies, our and the enemy alliance tag, the report-lookup switch, the Supabase URL and publishable key, and the public push key. Everything in it is public.
 
 On every Netlify deploy, `scripts/build.mjs` checks that file and writes the files that depend on it: `public/_redirects` (the proxies to the game's public API, and the report lookup if it is on), `public/_headers` (security headers with your Supabase address), and the public alliance page's `site-config.js` and `_redirects`. Those generated files are not committed. A mistake in `config.js`, for example a **secret** key pasted where the publishable key goes, stops the deploy with an explanation. Run `node scripts/build.mjs` to check it yourself; `node server.js` uses the same settings.
+
+## Updating the database
+`supabase/setup.sql` always builds the latest database for a new install. An existing database is moved forward with the numbered files in `supabase/migrations/` (see the README there): check `select version from public.schema_version;` and run every newer file once, in order. A database built from the old loose files (now in `supabase/legacy/`, including DONUT's own) runs `0001-from-legacy-files.sql` first, which also allows galaxies up to 9.
