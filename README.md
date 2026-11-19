@@ -1,173 +1,315 @@
-# DONUT ALLIANCE
+# 🍩 War Room: a private command centre for an OGame alliance
 
-Throwaway OGame dashboard for the Jishui (s265-us) alliance war. Reads the public OGame XML API.
+A phone-friendly web app for one alliance at war. Members log in, share incoming and outgoing fleets with live countdowns, chat with tappable coordinates, keep intel from spy and combat reports, mark moons with jump gates and sensor phalanxes, and hunt targets on a zoomable map of the whole universe. It can send push alerts to phones when an attack is logged or someone is @mentioned.
 
-    node server.js      # Node 18+, no npm install
-    open http://localhost:3000
+**👀 Try the demo first:** `https://<your-site>/demo/` on any deploy, or the original at **https://donutwarroom.netlify.app/demo/**. It's an invented universe with fake players, so nothing there is real and nothing you do is saved.
 
-- `server.js` serves `public/` and proxies `/api/*` to OGame (the API has no CORS headers). Caches 5 min. Local only.
-- `public/` is the whole site (also what Netlify publishes). `app.js` has the alliance tags to track at the top.
-- `netlify.toml` does the `/api/*` proxying on Netlify and sets security headers (CSP etc.).
-- It's an installable PWA (manifest + service worker).
+<!-- 📸 SCREENSHOT: 00-demo-overview.png — three phone screenshots side by side: Targets (flights), Map (a hunting lens), Players -->
 
-API docs (unofficial): https://gist.github.com/psmolak/409d038fb4a9157aecf25c84110d5b55
+You get your **own copy** of everything: your own database, your own website, your own members. Nobody else (including the people who wrote this) can see your alliance's data.
 
-## Login (Supabase)
+---
 
-Only invited, approved people get in. One-time setup:
+## 📋 Contents
 
-1. Supabase dashboard -> SQL Editor -> run `supabase/setup.sql` (the whole database, once). Already have a database? See "Updating the database" below instead.
-2. Authentication -> Sign In / Providers -> turn OFF "Allow new users to sign up". Set minimum password length to 10+.
-3. Authentication -> URL Configuration -> Site URL = your Netlify URL; add `http://localhost:3000` to Redirect URLs.
-4. Authentication -> Users -> Invite user (yourself first). Click the email link, choose a password.
-5. Run the "approve + admin" SQL at the bottom of `setup.sql` with your email.
+1. [Is this allowed by OGame?](#-is-this-allowed-by-ogame)
+2. [What you need](#-what-you-need)
+3. [Setup, step by step](#-setup-step-by-step) (about 45 minutes the first time)
+4. [Turn on alerts (optional)](#-turn-on-alerts-optional)
+5. [Adding and removing members](#-adding-and-removing-members)
+6. [🚨 Security: read this before you invite anyone](#-security-read-this-before-you-invite-anyone)
+7. [Updating to a newer version](#-updating-to-a-newer-version)
+8. [The public alliance page (optional)](#-the-public-alliance-page-optional)
+9. [Troubleshooting](#-troubleshooting)
+10. [Costs and limits](#-costs-and-limits)
+11. [For developers](#-for-developers)
 
-Each new player: invite them in step 4, they set a password from the email link, then you run the "approve a player" SQL.
+---
 
-`public/config.js` holds the project URL and publishable key (public by design). Never commit the secret key or DB password.
+## ⚖️ Is this allowed by OGame?
 
-## Chat
+OGame's rules on tools are here: [Important for users about toleration and tolerated tools](https://forum.origin.ogame.gameforge.com/forum/thread/320-important-for-users-about-toleration-and-tolerated-tools/). Read them yourself; this section is not legal advice and not a promise from Gameforge.
 
-Channels are rows in `public.channels` plus a button in `#views` in `public/index.html`.
-Messages are plain text; `2:45:8` / `[2:45:8]` become tappable chips that open a coordinate card (big separate galaxy / system / planet numbers, tap one to copy, plus "Open in browser"); `@name` is highlighted. New messages arrive by polling every 4s.
+What this app does and does **not** do:
 
-## Landings
+| ✅ Does | 🚫 Never does |
+|---|---|
+| Reads the game's **public** data files (`/api/universe.xml`, `players.xml`, `alliances.xml`, `highscore.xml`, `serverData.xml`), the same files every stats site uses | Asks for, stores or uses your **game login** |
+| Reads reports that a member **pastes in by hand** | Opens, clicks, scans or automates the game in any way |
+| Optionally looks up a pasted report **id** at a third-party service, ogapi.faw-kes.de (you can switch this off) | Runs inside the game page (no browser extension, no userscript) |
 
-Pinned at the top of Targets: a list of fleets landing (ours or enemy incoming) with live
-countdowns in each viewer's timezone, and a collapsed "+ Add a landing" form. Arrival time is computed on the server (now + minutes from now).
+The rules treat standalone websites where you paste reports or look up public stats as allowed without toleration. **Toleration status of this tool:** _not yet reviewed by the OGame Origin team_ (update this line if that changes). Only use the latest version from this repository, and don't add anything that automates the game.
 
-"Say it all in one go" (top of the add-landing form) uses `public/parse.js` to turn a sentence like
-`enemy 2 45 8, about 3 million, lands in 2 hours 15 minutes` into form fields. It only fills the form; the person checks and taps Add.
-Digits only (phone dictation writes "45" not "forty five").
+---
 
-## Players (intel from pasted reports)
-On the Players tab, paste an opened spy or combat report
-(browser OGame: Inspect the report, copy the `messagedetails` element's outerHTML), **or just paste report ids** (see below). The app reads it in your browser
-(`public/reports.js`) and sends a small summary to the database through `add_intel()`; the raw page is never stored.
+## 🧰 What you need
 
-- One profile per in-game player, friend or enemy. Spy reports give drive/combat tech and the lifeform ship-speed bonuses; combat reports give weapons/shields/armour percentages.
-- A newer report overrides only the values it shows (a thin report with few probes leaves older values alone). The same report pasted twice is ignored.
-- The app never talks to the game; it only reads what you paste.
+- 💻 A computer for the setup. A phone works for most steps but is painful.
+- 🐙 A free [GitHub](https://github.com) account, to hold your copy of the code.
+- 🗄️ A free [Supabase](https://supabase.com) account: the database and the logins.
+- 🌐 A free [Netlify](https://www.netlify.com) account: the website.
+- 🔢 Only for alerts: [Node.js](https://nodejs.org) 18 or newer on your computer, to run one command once.
+- 🔐 A password manager. You'll create a few things that must stay secret.
 
-### Report ids (easy for phone users)
-In the game, a report's key icon shows an id like `sr-us-265-<40 hex>` (spy) or `cr-us-265-<40 hex>` (combat). Paste one or several (one per line).
-The app asks `/ogapi/v1/report/<id>/true`, which `server.js` / `netlify.toml` pass on to **ogapi.faw-kes.de**, a private third-party service
-(operator named on its imprint page; it logs requests for up to 30 days, so it can see which reports we look up and who spied on whom).
-Accepted precautions: only the exact id shape is passed on, the answer must carry the id we asked for, everything is re-validated by `add_intel()`,
-and profile cards say "(looked up by id)". The pasted-page route sends nothing outside our own system, so use it for anything sensitive.
+> 🔐 **Turn on two-factor login (2FA) on GitHub, Supabase and Netlify before you start.** Whoever gets into any of those three accounts gets your whole war room.
 
-## Flight calculator (Players tab)
-`public/flight.js` is the maths, `public/calc.js` the screen. Pick From and To (type coordinates, or look up a player's planets and tap one), a ship, mission and speed,
-and whose tech to use: anyone we have a spy report on (drives and lifeform speed fill in), or type your own. Settings are remembered in this browser.
-- Formula and server rules (fleet speed 8 peaceful / 1 war, wraparound, empty and inactive systems skipped, target system always counts) are read from `serverData.xml`, `universe.xml` and `players.xml`.
-- Checked against four real in-game recycler times (21m58s / 31m23s deployment, 19m54s / 28m25s transport), all exact.
-- A fleet flies at its slowest ship, so the calculator takes one ship. Universe data is up to a week old, so a route can be off by a system near new or changed planets.
+---
 
-## Players tab layout
-Add a report (open, ready to paste) comes first, then the flight calculator (closed), then the roster: Known players, one tab per alliance in `ALLIES` (shows how many members have a spy report), and a search box for any player in the universe.
-Tap a player for their page: tech, lifeform speed, last fight, and every known planet with a tappable coordinate and the flight time from the calculator's From box.
-After a paste the app says how many players were updated, or "No new intel" (already added, nothing changed, or we already hold newer data).
+## 🚀 Setup, step by step
 
-## Alerts (push notifications)
-Phones and computers get a notification for: an enemy landing, one of our attacks or fleet moves, or someone writing `@yourname` in chat. Each device picks what it wants (Alerts button, top right).
-The message is encrypted on our server for that one device, so Google/Apple/Mozilla's push services only pass along something they can't read.
+> 💡 Menus on these sites move around now and then. If a button has a slightly different name, look for the closest match.
 
-How it works: the app saves each device's push address (the `push_subscriptions` table). After someone adds a landing or an @mention, their app asks our Netlify function (`netlify/functions/notify.mjs`) to tell the others.
-The function checks the caller's login, looks up what they just added in the database (the caller can't choose the text), sends once per landing/message, and only to real push-service addresses.
-`netlify/lib/push.mjs` is the encryption, written with Node's built-in crypto and checked against the example in RFC 8291.
+### Step 1: Make your own copy of the code
 
-### One-time setup
-1. The database part is already in `supabase/setup.sql`.
-2. On your own computer: `node scripts/vapid.mjs`. It prints a PUBLIC and a PRIVATE key.
-3. Put the PUBLIC key in `public/config.js` as `VAPID_PUBLIC_KEY` and commit it (it is meant to be public).
-4. In Netlify > Site configuration > Environment variables, add (mark the secret ones as secret):
-   - `SUPABASE_URL` = the project URL (same as config.js)
-   - `SUPABASE_PUBLISHABLE_KEY` = the publishable key (same as config.js)
-   - `SUPABASE_SECRET_KEY` = a secret key from Supabase > Project Settings > API Keys. **Secret: only here, never in the repo or any chat.** If it ever leaks, delete it in Supabase and make a new one.
-   - `VAPID_PUBLIC_KEY` = the PUBLIC key from step 2
-   - `VAPID_PRIVATE_KEY` = the PRIVATE key from step 2. **Secret, same rules.**
-5. Deploy again (Netlify only applies new variables to a new deploy).
-6. In the app: Alerts, pick what you want, Turn on, Send a test. On iPhone the app must first be added to the Home Screen.
+1. On this repository's GitHub page, click **Fork** (top right). Keep the name or pick a new one.
+2. Your fork is **public** (anyone can read it). That's fine: nothing secret ever goes in the code. **Never commit a password or secret key to it**, because git keeps history forever.
 
-Not covered yet: reminders before a landing arrives (e.g. "lands in 10 minutes"). That needs a scheduled job.
+<!-- 📸 SCREENSHOT: 01-github-fork.png — the Fork button on GitHub -->
 
-## Players: other alliances and planet strips
+### Step 2: Create the database (Supabase)
 
-The box under the roster tabs takes any alliance tag or name (autocomplete). That alliance takes the PMA tab; clear the box to get PMA back. Each card shows all of a player's planets left to right, galaxy 1 to 7, with a small dot for each moon. The star marks the capital. The OGame API does not say which planet is the capital, so the app marks the oldest one (lowest planet id), which has matched every real capital checked so far.
+1. In Supabase, click **New project**.
+   - **Name:** anything, for example `war-room`.
+   - **Database password:** click *Generate*, save it in your password manager. You won't need it for normal use. 🔐 **Never share it.**
+   - **Region:** the one closest to most of your members.
+2. Wait until the project is ready (a minute or two).
+3. Open **SQL Editor** > **New query**. Open [`supabase/setup.sql`](supabase/setup.sql) from your fork, copy **the whole file**, paste it in and click **Run**.
+   You should see **"Success. No rows returned"**. Run it only once.
 
-## Help button
+<!-- 📸 SCREENSHOT: 02-supabase-sql-editor.png — SQL editor with setup.sql pasted and the Success message -->
 
-The Help item in the header menu (the hamburger) opens a short how-to (install on iPhone and Android, alerts, reports, players, landings). The text is plain HTML in the `help-sheet` dialog in `public/index.html`; `public/help.js` just opens and closes it. Update the text there when something changes.
+4. Go to **Authentication** > **Sign In / Providers** (or *Providers* > *Email*):
+   - Turn **OFF** "Allow new users to sign up". 🚨 Important: only people you invite should get accounts.
+   - Set the **minimum password length** to 10 or more.
 
-## Flights (landings with missions and categories)
+<!-- 📸 SCREENSHOT: 03-supabase-signups-off.png — the "Allow new users to sign up" switch turned off -->
 
-Each flight now has a mission (attack, ACS attack, ACS defend,
-transport, deploy, espionage, harvest, expedition, moon destruction, colonize, return), an optional launch planet, an optional return time, how we know
-(event list, phalanx, probe, ally), and a category the app picks:
+5. Go to **Project Settings** > **API Keys** (or *Data API*) and copy two things into a note:
+   - the **Project URL**, like `https://abcdefghijkl.supabase.co`
+   - the **publishable** key (`sb_publishable_...`). Older projects call it the **anon** key.
 
-- **Alert**: an enemy attack, ACS attack or moon destruction on us (or on a planet we cannot place), which can be defended.
-- **Opportunity**: an enemy fleet at a known place and time: an enemy attack on a non-DONUT planet, an enemy deploy, ACS defend or return, and the return home of any enemy flight with a known launch planet (shown as its own card).
-- **Info**: everything else, including all of our own flights.
+   🚨 The same page also shows a **secret** key (`sb_secret_...`, or *service_role* on older projects). **Do not copy that one anywhere** except the alerts step later. It bypasses every protection in the database.
 
-Enemy flights in the info category do not send alerts. The dictation sentence (`public/parse.js`) understands the mission words, `from x y z` and `back in ...`.
-The old `add_landing()` function is kept so a page that has not updated yet keeps working.
+<!-- 📸 SCREENSHOT: 04-supabase-api-keys.png — API keys page, publishable key highlighted, secret key covered -->
 
-## War map
+### Step 3: Fill in your settings
 
-The Map tab (`public/map.js`) draws the universe from the same OGame data as the flight calculator. Whole-universe view: the 7 galaxies on a ring (galaxy 7 touches galaxy 1,
-because the server wraps galaxies). Galaxy view: the 499 systems around a ring (system 499 touches system 1), a planet's distance from the middle is its planet number.
-Orange = DONUT, red = the alliance in the second roster tab, moons are small dots, and flights with a known launch planet are arrows coloured by category.
-Needs no database change.
+All your settings live in one file: [`public/config.js`](public/config.js). Everything in it is public on purpose.
 
-Zoom (pinch, double-tap, wheel, + / -, up to 12x) changes only the SVG viewBox while a finger moves; on release the map is redrawn for that zoom
-(dots and text stay a steady size on screen, planet names appear from 3.5x without overlapping, only planets near the screen are drawn).
-The overview in the corner shows the visible part; the find box jumps to a player (fits their planets in their main galaxy) or to coordinates.
+1. On GitHub, open `public/config.js` in your fork and click the ✏️ pencil (Edit).
+2. Change:
 
-Moons: Tap a planet that has a moon, tick "Has a jump gate" and/or enter its phalanx level, and save (stored in `moons`, readable by approved members, written only through `set_moon()`).
-Gates are drawn as green rings joined by dotted lines per owner; a phalanx level draws the systems it reaches (level squared minus 1, each way, wrapping round the galaxy) and lists the second alliance's planets in range. Until the SQL is run the map still works, only saving moons fails.
+   | Setting | What to put | Example |
+   |---|---|---|
+   | `OGAME_SERVER` | The start of your game's address: `https://s123-en.ogame.gameforge.com` → | `'s123-en'` |
+   | `GALAXIES` | How many galaxies your universe has | `7` |
+   | `OUR_ALLIANCE` | Your alliance tag, exactly as in the game | `'DONUT'` |
+   | `ENEMY_ALLIANCE` | The tag of the alliance you're fighting | `'PMA'` |
+   | `REPORT_LOOKUP` | `true` lets members paste report ids, which are looked up at ogapi.faw-kes.de. `false` keeps everything in-house (members paste whole report pages instead). | `true` |
+   | `SUPABASE_URL` | Project URL from step 2 | `'https://abcdefghijkl.supabase.co'` |
+   | `SUPABASE_KEY` | The **publishable** key from step 2 | `'sb_publishable_...'` |
+   | `VAPID_PUBLIC_KEY` | Leave `''` for now (alerts come later) | `''` |
 
-Moons from spy reports: a spy report on a moon that shows its buildings (pasted page or report id) sets that moon's phalanx level (building 42) and jump gate (building 43)
-through `set_moon_seen()`. Only a report newer than what we already know counts (`observed_at`); typed-in values count as seen "now".
-Until then a moon report still updates the player, and the paste result says the moon could not be saved.
+3. Click **Commit changes**.
 
-Map filter: by default the map hides inactive players and players with no alliance who are weaker (total points, `highscore.xml?category=1&type=0`) than our weakest DONUT player.
-DONUT, the second tab's alliance and whoever is tapped or searched for always show; other alliances show unless inactive. The button under the map toggles "show everyone".
+<!-- 📸 SCREENSHOT: 05-github-edit-config.png — config.js open in the GitHub editor -->
 
-@mention suggestions (`public/mention.js`): typing @ shows a strip of tappable names above the chat box (approved members whose display name is letters, digits, _ . - only, which is what mention alerts can match). Plain buttons, no native dropdown, so the phone keyboard is untouched.
+> 🛡️ If you ever paste a **secret** key here by mistake, the next deploy stops with a warning. Then delete that key in Supabase and make a new one: it was public the moment you committed it.
 
-Layout: the header is one slim row with a hamburger menu (Help, Alerts, Change name, Sign out; `public/menu.js`). The Map screen fills the window and the page does not scroll
-(`body.map-active`): galaxy tabs on top, then the map with everything else as overlays (legend, zoom readout, overview, and buttons for full screen, search, the lens button, zoom and reset).
-Tapping a planet opens its details as a sheet over the bottom of the map, and the map slides so the planet stays visible above the sheet.
+> ⚠️ The app reads reports and dictated flights in **English**. Servers in other languages can use the map, chat and flights, but report pasting may not understand non-English reports yet.
 
-## Map lenses
+### Step 4: Put the website online (Netlify)
 
-The map's lens button cycles through ways of looking at the universe (`public/lens.js`): What matters (default), Everyone, Big fleets, Ripe targets and Ripe anywhere. The hunting lenses rank non-DONUT players (not on vacation or banned, at least as big as our weakest DONUT player) and show the best 40, heat-coloured, with a "why" line in the planet sheet.
+1. In Netlify: **Add new site** (or *Add new project*) > **Import an existing project** > **GitHub**, and pick your fork.
+2. Leave the build settings as they are. The repository already tells Netlify what to do.
+3. Click **Deploy**. After a minute, open the deploy log: near the end it should say
+   `✅ config ok: s123-en, DONUT vs PMA, ...`
+   If it says `✋ public/config.js needs fixing`, it lists what to fix. Fix it on GitHub, and Netlify redeploys by itself.
+4. **Site configuration** > **Change site name**: pick something that doesn't give away your alliance, for example `blue-falcon-hq`. That name is your web address: `https://blue-falcon-hq.netlify.app`.
 
-- Data: the daily highscore files for total, economy, research and military points (`loadWorld` in `flight.js` fills `world.stats`). Military points include defence, so a high fleet share can also be a turtle.
-- Size floor: a target's fleet (military points, times the ships share when scanned) must be at least 25% of a typical (median) DONUT member's military, and its total at least 25% of a typical DONUT total (`MIN_FLEET_VS_US`, `MIN_TOTAL_VS_US` in `lens.js`). This drops new and tiny accounts that are "all ships" but not worth a trip.
-- Big fleets: half fleet share, half fleet size (both percentile ranks).
-- Ripe anywhere: Ripe targets without distance, for choosing where to place a planet: 0.3 fleet size + 0.3 fleet share + 0.15 neglected research + 0.125 no alliance + 0.125 inactive.
-- Ripe targets: 0.25 fleet size + 0.25 fleet share + 0.2 closeness to our planets + 0.1 neglected research + 0.1 no alliance + 0.1 inactive. All shares are percentile ranks within the pool, so there are no fixed cutoffs; tune the weights in `huntBoard`.
-- Scans: spy reports added by pasting the page also save the value of the ships and defence on that planet or moon (`scans` table, written by `add_scan()`, readable by members). The lenses use scans up to 14 days old: ships / (ships + defence) scales the player's military share, so turtles drop and fleeters stay. Reports added by ID do not include these numbers yet. A report that shows neither (both 0) is ignored, since hidden and empty look the same.
+<!-- 📸 SCREENSHOT: 06-netlify-deploy-log.png — the deploy log with the "config ok" line -->
 
-## Public alliance page (`showcase/`)
-A separate, public, no-login page for the alliance: the universe map with DONUT (or any alliance picked at the top, shareable as `?a=TAG`) in orange and everyone else faint, galaxy tabs, pinch/wheel zoom, a tap card per planet, and the member list (tap a member to find them). It is deliberately its own site, not a route of the war room.
-- Standalone code in `showcase/site/` (no shared scripts, no Supabase, no keys, nothing from `public/`). It reads only the game's public files through four fixed redirects in `showcase/netlify.toml`, cached 15 minutes.
-- Deploy: in Netlify, **Add new site > Import from Git**, pick this repo, set **Base directory** to `showcase` (it reads `showcase/netlify.toml`, publish dir `site`), no build command. Then choose a neutral site name (Site configuration > Change site name), because the name is the URL.
-- **All the words** (title, recruiting box, achievements, System remarks, footer) live in `showcase/site/copy.js`, with editing rules at the top. Text there can't inject HTML: it is escaped, and only `**bold**` and `{placeholders}` are understood.
-- Preview locally: `SITE=showcase/site node server.js`.
-- It shows only what anyone can already see in the game's galaxy view. It must never show war-room data (flights, moons, scans, lenses, intel).
+### Step 5: Tell Supabase where your site lives
 
-## Settings (`public/config.js`)
-Everything that ties the app to one server and one war lives in `public/config.js`: game server, galaxies, our and the enemy alliance tag, the report-lookup switch, the Supabase URL and publishable key, and the public push key. Everything in it is public.
+Back in Supabase: **Authentication** > **URL Configuration**:
+- **Site URL:** your Netlify address, like `https://blue-falcon-hq.netlify.app`
+- **Redirect URLs:** add the same address, plus `http://localhost:3000` if you'll ever run it on your own computer.
 
-On every Netlify deploy, `scripts/build.mjs` checks that file and writes the files that depend on it: `public/_redirects` (the proxies to the game's public API, and the report lookup if it is on), `public/_headers` (security headers with your Supabase address), and the public alliance page's `site-config.js` and `_redirects`. Those generated files are not committed. A mistake in `config.js`, for example a **secret** key pasted where the publishable key goes, stops the deploy with an explanation. Run `node scripts/build.mjs` to check it yourself; `node server.js` uses the same settings.
+This makes invite and password-reset emails link to your site.
 
-## Updating the database
-`supabase/setup.sql` always builds the latest database for a new install. An existing database is moved forward with the numbered files in `supabase/migrations/` (see the README there): check `select version from public.schema_version;` and run every newer file once, in order. A database built from the old loose files (now in `supabase/legacy/`, including DONUT's own) runs `0001-from-legacy-files.sql` first, which also allows galaxies up to 9.
+<!-- 📸 SCREENSHOT: 07-supabase-url-config.png -->
 
-## Demo (`/demo/`)
-A no-login demo of the whole app at `/demo/` on any deploy (and `http://localhost:3000/demo/` with `node server.js`). It shows an invented universe, "Crumbspace" (s999-us), with DONUT against an invented enemy, GRIM: about 420 players, 60 alliances, flights, chat, moons with gates and phalanxes, scans and spy intel. Every name except DONUT is made up from syllables; the shape (how many players are inactive, planets per player, busy galaxies and slots) copies a real universe.
-- Files: `public/demo/config.js` (fake settings), `public/demo/data.js` (the seeded universe), `public/demo/demo.js` (answers every request in memory). `scripts/build.mjs` makes `public/demo/index.html` from `public/index.html`.
-- It cannot touch a real database: requests never leave the page (demo.js answers them), its security policy allows no outside address, and it keeps its own pretend login, so a real War Room login in the same browser is never read or changed.
-- Anything added in the demo is gone on reload. Alerts and report-id lookups are off.
+### Step 6: Make yourself the first member and admin
+
+1. Supabase: **Authentication** > **Users** > **Invite user**, and enter your own email.
+2. Open the email, click the link and choose a password (10+ characters, from your password manager).
+3. Back in **SQL Editor**, run this with **your** email:
+
+   ```sql
+   update public.profiles set approved = true, is_admin = true
+   where id = (select id from auth.users where email = 'YOUR_EMAIL_HERE');
+   ```
+
+4. Open your site and sign in. 🎉 You should see the War Room with your alliance on the map.
+
+<!-- 📸 SCREENSHOT: 08-first-login.png — the app right after the first sign-in -->
+
+### Step 7: Install it on phones
+
+- **Android (Chrome):** open the site > ⋮ menu > **Add to Home screen** / **Install app**.
+- **iPhone (Safari):** open the site > Share button > **Add to Home Screen**. iPhones need this for alerts to work (iOS 16.4 or newer).
+
+<!-- 📸 SCREENSHOT: 09-install-android.png and 10-install-iphone.png -->
+
+---
+
+## 🔔 Turn on alerts (optional)
+
+Alerts send a phone notification when someone logs an enemy attack, one of your attacks or fleet moves, or writes `@yourname` in chat. Each phone chooses which ones it wants.
+
+1. On your computer, in your fork's folder (or any copy of the code), run:
+   ```
+   node scripts/vapid.mjs
+   ```
+   It prints a **PUBLIC** and a **PRIVATE** key. 🔐 Save the private one in your password manager.
+2. Put the **PUBLIC** key in `public/config.js` as `VAPID_PUBLIC_KEY` and commit.
+3. In Netlify: **Site configuration** > **Environment variables** > **Add a variable**, and add these five. Tick **"Contains secret values"** for the two marked 🔐:
+
+   | Name | Value |
+   |---|---|
+   | `SUPABASE_URL` | the Project URL (same as config.js) |
+   | `SUPABASE_PUBLISHABLE_KEY` | the publishable key (same as config.js) |
+   | `SUPABASE_SECRET_KEY` 🔐 | Supabase > Project Settings > API Keys > **create a new secret key** just for this |
+   | `VAPID_PUBLIC_KEY` | the PUBLIC key from step 1 |
+   | `VAPID_PRIVATE_KEY` 🔐 | the PRIVATE key from step 1 |
+
+4. **Deploys** > **Trigger deploy**, because new variables only apply to a new deploy.
+5. In the app: ☰ menu > **Alerts** > choose what you want > **Turn on** > **Send a test**.
+
+<!-- 📸 SCREENSHOT: 11-netlify-env-vars.png — the variables list, values hidden -->
+
+> 📱 **Android:** if the test never arrives, long-press the app icon > App info / Site settings > Notifications, and allow them (some phones block the category).
+> 🍎 **iPhone:** alerts only work when the app was added to the Home Screen (step 7) and opened from there.
+
+---
+
+## 👥 Adding and removing members
+
+**Add someone:**
+1. Supabase > **Authentication** > **Users** > **Invite user**, with their email.
+2. They click the link in the email and choose a password.
+3. You approve them in the **SQL Editor**:
+   ```sql
+   update public.profiles set approved = true
+   where id = (select id from auth.users where email = 'THEIR_EMAIL_HERE');
+   ```
+Until you approve them, they can log in but see nothing.
+
+**Remove someone** (they left the alliance, or you don't trust them any more), right away:
+```sql
+update public.profiles set approved = false
+where id = (select id from auth.users where email = 'THEIR_EMAIL_HERE');
+```
+Or delete them under **Authentication** > **Users**. Either way they lose access at once.
+
+> 🕵️ Every approved member can read **everything**: all flights, chat, intel and moons. Approve only people you'd trust with your fleet times, and remove people the day they leave.
+
+---
+
+## 🚨 Security: read this before you invite anyone
+
+Your war room holds information your enemies would love: when your fleets land, where your moons and gates are, who you're about to hit. These are the ways it can go wrong, and how to avoid them.
+
+### 🔑 Know your keys
+
+| Thing | Where it lives | If it leaks |
+|---|---|---|
+| Supabase **publishable** key, Project URL, VAPID **public** key | `public/config.js` (public by design) | Nothing. On their own they can't read anything. |
+| Supabase **secret / service_role** key 🔐 | Only Netlify environment variables | **Full access to all your data**, skipping every protection. Delete it in Supabase and make a new one right away, then update Netlify. |
+| VAPID **private** key 🔐 | Only Netlify environment variables (and your password manager) | Someone could send fake alerts to your members. Make a new pair (alerts step 1) and update both places. Members turn alerts on again. |
+| Database password 🔐 | Your password manager | Full access. Reset it in Supabase > Project Settings > Database. |
+| Your GitHub / Supabase / Netlify logins 🔐 | You | Full control of everything. Use 2FA. |
+
+### ✅ Checklist
+
+- [ ] 2FA is on for GitHub, Supabase and Netlify.
+- [ ] "Allow new users to sign up" is **off** in Supabase.
+- [ ] No secret key, private key or password is anywhere in your repository. Search your fork for `sb_secret`, `service_role` and `PRIVATE` once in a while.
+- [ ] The secret key and VAPID private key are only in Netlify, marked as secret.
+- [ ] Only people you trust are approved, and people who leave are removed the same day.
+- [ ] Your site name doesn't advertise what it is.
+
+### ⚠️ Dangers worth knowing
+
+- **Git never forgets.** A secret that was committed even for one minute is leaked, even after you delete it: forks and copies may already have it. Don't try to hide it. **Rotate it** (make a new one, delete the old one).
+- **Never paste keys into chats**, Discord, screenshots or AI assistants. Cover them in screenshots.
+- **Phishing.** The War Room never asks for your OGame password. Members should only sign in at your real site address. Tell them to be suspicious of look-alike links.
+- **Report ids go to a third party** when `REPORT_LOOKUP` is `true`. ogapi.faw-kes.de is a private community service. It can see which reports your members look up, and it keeps logs for a while. If that worries you, set it to `false` and paste whole report pages instead.
+- **Shared or lost phones.** The app stays signed in. If a phone is lost or shared, sign out there, or remove and re-invite that member.
+- **You are responsible for your members' data** (their emails and what they post). Keep the member list small, and delete people who leave.
+- **The demo page** (`/demo/`) on your site is public and shows only invented data. It cannot reach your database.
+
+Found a security problem in the code itself? See [SECURITY.md](SECURITY.md).
+
+---
+
+## 🔄 Updating to a newer version
+
+1. On your fork's GitHub page, click **Sync fork** > **Update branch**. Netlify deploys the new version by itself.
+2. Check whether the update changed the database. Look in [`supabase/migrations/`](supabase/migrations/) for files with a number higher than your version. To see your version, run this in the SQL Editor:
+   ```sql
+   select version from public.schema_version;
+   ```
+3. Run each newer file once, in order, in the SQL Editor. The [migrations README](supabase/migrations/README.md) has details.
+
+> 💡 If Sync fork reports a conflict in `public/config.js`, keep **your** values.
+
+---
+
+## 🌍 The public alliance page (optional)
+
+A separate, public page to show off your alliance and recruit. It has the universe map with your planets in orange, a member leaderboard and a recruiting box. It uses only public game data and has no login. It lives in [`showcase/`](showcase/).
+
+1. Netlify > **Add new site** > **Import an existing project** > your fork again.
+2. Set **Base directory** to `showcase`, then deploy.
+3. Give it its own site name. This one *is* meant to be shared.
+4. Edit the words in [`showcase/site/copy.js`](showcase/site/copy.js) on GitHub. It has editing notes at the top, and it's safe to hand to a non-coder. Change any mention of the universe name there.
+
+<!-- 📸 SCREENSHOT: 12-public-page.png -->
+
+---
+
+## 🩺 Troubleshooting
+
+| Problem | Try |
+|---|---|
+| Deploy failed with `✋ public/config.js needs fixing` | Read the lines under it, fix `config.js`, commit. |
+| Site loads, but the map or players are empty | Check `OGAME_SERVER` matches your game's address exactly. The game updates its public files hourly to weekly, so a brand-new server may be thin. |
+| Can sign in but see nothing | You're not approved yet: run the approve SQL. |
+| Invite email links to the wrong site | Step 5: Site URL in Supabase. |
+| "Could not save..." errors after an update | A database update is waiting: see [Updating](#-updating-to-a-newer-version). |
+| Alerts test does nothing | Check all five Netlify variables, redeploy, then see the Android / iPhone notes under alerts. |
+| Everything stopped after a quiet week | Free Supabase projects pause when nobody uses them. Open the Supabase dashboard and click **Restore**. |
+
+---
+
+## 💸 Costs and limits
+
+- The free plans of Supabase and Netlify are plenty for one alliance.
+- ⏸️ **Free Supabase projects pause after about a week with no activity.** Restore them from the dashboard. Your data stays.
+- 💾 Free Supabase has no automatic backups you can download. If your intel matters, export tables now and then (Table Editor > Export).
+- The app fetches the game's public files through your own site and asks browsers and Netlify to keep copies for 10 minutes, so it's gentle on the game's servers. Please keep it that way.
+
+---
+
+## 🛠️ For developers
+
+- **Run it locally:** `node server.js` (Node 18+, no `npm install`), then open http://localhost:3000. The demo is at http://localhost:3000/demo/.
+- **How each feature works:** [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md).
+- **Check your settings:** `node scripts/build.mjs`.
+- **Structure:** plain JavaScript in `public/`, no frameworks or build tools. The database is `supabase/setup.sql` with Row-Level Security on every table. `netlify/functions/notify.mjs` sends alerts. `showcase/` is the public page.
+- **Database changes:** add a numbered file in `supabase/migrations/` *and* update `setup.sql`. The [migrations README](supabase/migrations/README.md) has the rules.
+
+---
+
+_Not affiliated with, endorsed by or supported by Gameforge or OGame. OGame is a trademark of Gameforge. Use at your own risk: the people who wrote this can't see, recover or protect your data. That's up to you._
