@@ -312,4 +312,8 @@ A separate, public page to show off your alliance and recruit. It has the univer
 
 ---
 
+## 📜 License
+
+[CC0 1.0](LICENSE): public domain. Copy, change, share and use it for anything, no credit needed.
+
 _Not affiliated with, endorsed by or supported by Gameforge or OGame. OGame is a trademark of Gameforge. Use at your own risk: the people who wrote this can't see, recover or protect your data. That's up to you._

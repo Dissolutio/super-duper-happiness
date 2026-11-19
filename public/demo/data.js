@@ -85,13 +85,18 @@ const DEMO = (() => {
   const H = (root, body) => `<?xml version="1.0" encoding="UTF-8"?>\n<${root} timestamp="${Math.floor(Date.now() / 1000)}" serverId="us999">\n${body}</${root}>\n`
   const xml = {}
   xml['serverData.xml'] = H('serverData', '<name>Crumbspace</name><number>999</number><language>us</language><speed>5</speed><speedFleetPeaceful>8</speedFleetPeaceful><speedFleetWar>1</speedFleetWar><speedFleetHolding>1</speedFleetHolding><galaxies>7</galaxies><systems>499</systems><donutGalaxy>1</donutGalaxy><donutSystem>1</donutSystem><fleetIgnoreEmptySystems>0</fleetIgnoreEmptySystems><fleetIgnoreInactiveSystems>0</fleetIgnoreInactiveSystems>\n')
-  xml['alliances.xml'] = H('alliances', alliances.map((a) => `<alliance id="${a.id}" name="${xmlEsc(a.name)}" tag="${xmlEsc(a.tag)}"/>`).join('\n') + '\n')
+  // like the real file: each alliance lists its members (the Data tab reads them from here)
+  xml['alliances.xml'] = H('alliances', alliances.map((a) => `<alliance id="${a.id}" name="${xmlEsc(a.name)}" tag="${xmlEsc(a.tag)}" founder="${players.find((p) => p.alliance === a)?.id ?? ''}" open="${a.tag === 'DONUT' ? 1 : 0}">${players.filter((p) => p.alliance === a).map((p) => `<player id="${p.id}"/>`).join('')}</alliance>`).join('\n') + '\n')
   xml['players.xml'] = H('players', players.map((p) => `<player id="${p.id}" name="${xmlEsc(p.name)}"${p.status ? ` status="${p.status}"` : ''}${p.alliance ? ` alliance="${p.alliance.id}"` : ''}/>`).join('\n') + '\n')
   xml['universe.xml'] = H('universe', players.flatMap((p) => p.planets.map((pl) => `<planet id="${pl.id}" player="${p.id}" name="${xmlEsc(pl.name)}" coords="${pl.coords}">${pl.moon ? `<moon id="${pl.id + 1}" name="Moon" size="${int(5000, 8900)}"/>` : ''}</planet>`)).join('\n') + '\n')
   const ranked = (field) => [...players].sort((a, b) => b[field] - a[field])
   ;[['total', 0], ['eco', 1], ['res', 2], ['mil', 3]].forEach(([field, type]) => {
     xml[`highscore.xml?category=1&type=${type}`] = H('highscore', ranked(field).map((p, i) => `<player position="${i + 1}" id="${p.id}" score="${p[field]}"${type === 3 ? ` ships="${Math.round(p[field] / 900)}"` : ''}/>`).join('\n') + '\n')
   })
+
+  // alliance totals (the Data tab): the sum of the members' points
+  const allianceTotal = alliances.map((a) => ({ id: a.id, score: players.filter((p) => p.alliance === a).reduce((t, p) => t + p.total, 0) })).sort((x, z) => z.score - x.score)
+  xml['highscore.xml?category=2&type=0'] = H('highscore', allianceTotal.map((a, i) => `<alliance position="${i + 1}" id="${a.id}" score="${a.score}"/>`).join('\n') + '\n')
 
   // ---- the war room's own data (what members would have saved) ----
   const now = Date.now()
