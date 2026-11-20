@@ -142,3 +142,8 @@ A no-login demo of the whole app at `/demo/` on any deploy (and `http://localhos
 - Files: `public/demo/config.js` (fake settings), `public/demo/data.js` (the seeded universe), `public/demo/demo.js` (answers every request in memory). `scripts/build.mjs` makes `public/demo/index.html` from `public/index.html`.
 - It cannot touch a real database: requests never leave the page (demo.js answers them), its security policy allows no outside address, and it keeps its own pretend login, so a real War Room login in the same browser is never read or changed.
 - Anything added in the demo is gone on reload. Alerts and report-id lookups are off.
+
+## Planet details (Players > a player)
+The planet diagram squeezes galaxies without planets and zooms each other galaxy to the systems in use (numbers under it). Tapping a planet, or its row, opens what we know about that planet and its moon: the latest spy scan of each (fleet and defence values, ship and defence counts, mine/shipyard levels, moon facilities, resources), gate and phalanx, and an account-wide fleet estimate (military points times the ships share of recent scans) with combat tech.
+- Breakdowns come from pasted report pages (`data-raw-fleet`, `-defense`, `-buildings`, `-resources`), stored per planet/moon in `scans` (migration 0002). Unit names and costs are in `public/units.js`; costs reproduce the game's own fleet/defence values exactly.
+- Report-id lookups: counts are read if the lookup returns them (format not verified), and values are worked out from the costs.

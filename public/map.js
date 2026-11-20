@@ -191,6 +191,13 @@ function ensureMoons(done) {
   return done ? MAP.moonsLoading.then(done) : MAP.moonsLoading
 }
 
+// the same for scans (the players screen shows what spy reports saw on each planet)
+function ensureScans(done) {
+  if (MAP.scans) return Promise.resolve()
+  MAP.scansLoading ??= loadScans().finally(() => { MAP.scansLoading = null })
+  return done ? MAP.scansLoading.then(done) : MAP.scansLoading
+}
+
 async function loadMoons() {
   try {
     const rows = await sb('/rest/v1/moons?select=galaxy,system,position,gate,phalanx', { token: await getToken() })
@@ -205,12 +212,15 @@ async function loadMoons() {
 // what spy reports saw on each player's planets (ships and defence, by value): MAP.scans = player id -> [{ coords, moon, fleet, defense, at }]
 async function loadScans() {
   try {
-    const rows = await sb('/rest/v1/scans?select=galaxy,system,position,moon,player_id,fleet_value,defense_value,observed_at', { token: await getToken() })
+    const rows = await sb('/rest/v1/scans?select=*', { token: await getToken() }) // * so it still works before migration 0002 adds the breakdown
     const by = new Map()
     for (const r of rows) {
       const id = String(r.player_id)
       if (!by.has(id)) by.set(id, [])
-      by.get(id).push({ coords: `${r.galaxy}:${r.system}:${r.position}`, moon: r.moon, fleet: Number(r.fleet_value), defense: Number(r.defense_value), at: Date.parse(r.observed_at) })
+      by.get(id).push({
+        coords: `${r.galaxy}:${r.system}:${r.position}`, moon: r.moon, fleet: Number(r.fleet_value), defense: Number(r.defense_value), at: Date.parse(r.observed_at),
+        ships: r.ships ?? null, defenseUnits: r.defense_units ?? null, buildings: r.buildings ?? null, resources: r.resources == null ? null : Number(r.resources),
+      })
     }
     MAP.scans = by
     MAP.board = null

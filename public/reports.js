@@ -22,18 +22,26 @@ function parseReport(text) {
 // A spy report on a MOON that shows its buildings tells us its phalanx level and whether it has a jump gate
 // (building ids 42 = sensor phalanx, 43 = jump gate; planet type 3 = moon). Null for a planet, or when the buildings were hidden.
 function moonFrom(coords, type, levels) {
-  const m = String(coords).match(/^([1-7]):(\d{1,3}):(\d{1,2})$/)
+  const m = String(coords).match(/^([1-9]):(\d{1,3}):(\d{1,2})$/)
   if (type !== 3 || !m || !levels || !Object.keys(levels).length) return null
   return { galaxy: Number(m[1]), system: Number(m[2]), position: Number(m[3]), gate: Number(levels[43] ?? 0) > 0, phalanx: Number(levels[42] ?? 0) }
 }
 
-// What a spy report saw standing on the planet or moon: the value of the ships and of the defence. Null when it showed neither
-// (both 0 usually means the probes could not see them, so we cannot tell "nothing" from "hidden"). Ships in flight are not on the planet.
-function scanFrom(coords, type, player, fleet, defense) {
-  const m = String(coords).match(/^([1-7]):(\d{1,3}):(\d{1,2})$/)
+// What a spy report saw on the planet or moon: the value of the ships and of the defence, and when the report shows them,
+// the counts ({ id: count }), building levels and resources. Null when it showed none of that. Ships in flight are not
+// on the planet, and an empty list can also mean the probes could not see it.
+function scanFrom(coords, type, player, fleet, defense, detail = {}) {
+  const m = String(coords).match(/^([1-9]):(\d{1,3}):(\d{1,2})$/)
   const ok = (n) => Number.isFinite(n) && n >= 0 && n <= 1e15
-  if (!m || !player || !ok(fleet) || !ok(defense) || fleet + defense <= 0) return null
-  return { galaxy: Number(m[1]), system: Number(m[2]), position: Number(m[3]), moon: type === 3, player_id: player, fleet: Math.round(fleet), defense: Math.round(defense) }
+  const has = (x) => x && Object.keys(x).length > 0
+  const seen = has(detail.ships) || has(detail.defense) || has(detail.buildings)
+  if (!m || !player || !ok(fleet) || !ok(defense) || (fleet + defense <= 0 && !seen)) return null
+  return {
+    galaxy: Number(m[1]), system: Number(m[2]), position: Number(m[3]), moon: type === 3, player_id: player,
+    fleet: Math.round(fleet), defense: Math.round(defense),
+    ships: detail.ships ?? null, defense_units: detail.defense ?? null, buildings: detail.buildings ?? null,
+    resources: ok(detail.resources) ? Math.round(detail.resources) : null,
+  }
 }
 
 function parseSpy(doc, a, json) {
@@ -56,7 +64,9 @@ function parseSpy(doc, a, json) {
     fleet_value: Number(a('fleetvalue')) || 0,
     defense_value: Number(a('defensevalue')) || 0,
     moon: moonFrom(a('coordinates'), Number(a('targetplanettype')), json('buildings')),
-    scan: scanFrom(a('coordinates'), Number(a('targetplanettype')), Number(a('targetplayerid')), Number(a('fleetvalue')), Number(a('defensevalue'))),
+    scan: scanFrom(a('coordinates'), Number(a('targetplanettype')), Number(a('targetplayerid')),
+      Number(a('fleetvalue')) || unitValue(unitCounts(json('fleet')), SHIP_UNITS), Number(a('defensevalue')) || unitValue(unitCounts(json('defense')), DEFENSE_UNITS),
+      { ships: unitCounts(json('fleet')), defense: unitCounts(json('defense')), buildings: unitCounts(json('buildings')), resources: Number(a('resources')) }),
   }
   if (!out.player_id || !out.name || !out.at) return { error: 'The report is missing the player or the time.' }
   return out
@@ -143,7 +153,18 @@ function spyFromJson(id, j) {
     player_id: g.defender_user_id, name: g.defender_name, class: CLASS_NAMES[g.defender_character_class_id] ?? null,
     coords: g.defender_planet_coordinates, tech, speed_bonus,
     moon: moonFrom(g.defender_planet_coordinates, g.defender_planet_type, levels),
+    scan: idScan(g, j.details ?? {}, levels),
   }
+}
+
+// The id lookup gives counts but not values: work the values out from the unit costs. Only when it shows some ships or
+// defence, because an empty list there may just mean the probes could not see them.
+function idScan(g, d, levels) {
+  const ships = unitCounts(d.ships ?? d.fleet), defense = unitCounts(d.defense ?? d.defence)
+  if (!Object.keys(ships ?? {}).length && !Object.keys(defense ?? {}).length) return null
+  const res = d.resources
+  const resources = typeof res === 'number' ? res : res && typeof res === 'object' ? Object.values(res).reduce((t, v) => t + (Number(typeof v === 'object' ? v?.amount : v) || 0), 0) : null
+  return scanFrom(g.defender_planet_coordinates, g.defender_planet_type, asId(g.defender_user_id), unitValue(ships, SHIP_UNITS), unitValue(defense, DEFENSE_UNITS), { ships, defense, buildings: levels, resources })
 }
 
 function combatFromJson(id, j) {

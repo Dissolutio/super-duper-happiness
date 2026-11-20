@@ -77,7 +77,7 @@
       case '/rest/v1/rpc/add_scan': {
         const b = body, i = db.scans.findIndex((s) => s.galaxy === b.p_galaxy && s.system === b.p_system && s.position === b.p_position && s.moon === !!b.p_moon)
         if (i >= 0) db.scans.splice(i, 1)
-        db.scans.push({ galaxy: b.p_galaxy, system: b.p_system, position: b.p_position, moon: !!b.p_moon, player_id: b.p_player, fleet_value: b.p_fleet, defense_value: b.p_defense, observed_at: new Date(b.p_seen_at * 1000).toISOString() })
+        db.scans.push({ galaxy: b.p_galaxy, system: b.p_system, position: b.p_position, moon: !!b.p_moon, player_id: b.p_player, fleet_value: b.p_fleet, defense_value: b.p_defense, observed_at: new Date(b.p_seen_at * 1000).toISOString(), ships: b.p_ships ?? null, defense_units: b.p_defense_units ?? null, buildings: b.p_buildings ?? null, resources: b.p_resources ?? null })
         return json(i >= 0 ? 'updated' : 'new')
       }
       case '/rest/v1/push_subscriptions': return json([])

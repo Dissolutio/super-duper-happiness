@@ -122,13 +122,45 @@ const DEMO = (() => {
     })
   }
 
+  // a believable spy-report breakdown worth about `fleet` and `defense` resources: { ships, defense_units, buildings, resources, values }
+  const COST = { 204: 4000, 206: 29000, 207: 60000, 215: 85000, 218: 160000, 213: 125000, 219: 31000, 202: 4000, 203: 12000, 209: 18000, 210: 1000 }
+  const DCOST = { 401: 2000, 402: 2000, 403: 8000, 404: 37000, 405: 8000, 406: 130000, 407: 20000, 408: 100000, 502: 10000 }
+  function fill(total, costs, kinds) {
+    const out = {}; let left = total
+    kinds.forEach((id, i) => { const part = i === kinds.length - 1 ? left : left * (0.2 + rnd() * 0.5); const n = Math.floor(part / costs[id]); if (n > 0) { out[id] = n; left -= n * costs[id] } })
+    return out
+  }
+  const sum = (o, costs) => Object.entries(o).reduce((t, [id, n]) => t + costs[id] * n, 0)
+  function breakdown(fleet, defense, moon) {
+    const ships = fill(fleet, COST, rnd() < 0.5 ? [218, 207, 215, 203, 210] : [204, 206, 219, 209, 202])
+    const defense_units = moon ? {} : fill(defense, DCOST, [406, 404, 403, 402, 401])
+    if (!moon && defense > 0) { defense_units[407] = 1; defense_units[408] = 1 }
+    const buildings = moon ? { 41: int(4, 9), 42: int(0, 7), 43: rnd() < 0.5 ? 1 : 0, 14: int(1, 8) } : { 1: int(22, 32), 2: int(18, 27), 3: int(16, 26), 4: int(18, 28), 12: int(8, 16), 14: 10, 15: int(0, 5), 21: int(8, 14), 22: int(8, 13), 23: int(8, 12), 24: int(7, 11), 31: int(8, 13), 44: int(0, 6) }
+    return { ships, defense_units, buildings, resources: int(50000, 9000000), fleet_value: sum(ships, COST), defense_value: sum(defense_units, DCOST) }
+  }
+
   // scans: a few targets we probed lately
   const scans = []
   const targets = players.filter((p) => !war(p) && p.status === '' && p.mil > 200000).slice(0, 14)
   for (const p of targets) {
     const [galaxy, system, position] = C(p.planets[0])
     const ships = p.style === 'turtle' ? p.mil * 0.15 : p.mil * 0.7
-    scans.push({ galaxy, system, position, moon: false, player_id: Number(p.id), fleet_value: Math.round(ships * 1000), defense_value: Math.round((p.mil - ships) * 1000), observed_at: iso(now - int(1, 120) * 36e5) })
+    scans.push({ galaxy, system, position, moon: false, player_id: Number(p.id), fleet_value: Math.round(ships * 1000), defense_value: Math.round((p.mil - ships) * 1000), observed_at: iso(now - int(1, 120) * 36e5), ...breakdown(ships * 1000, (p.mil - ships) * 1000, false) })
+  }
+  // and a few planets and moons of the enemy and of ourselves, with the full breakdown
+  for (const p of [...grim.slice(0, 6), ...donut.slice(0, 3)]) {
+    for (const pl of p.planets.slice(0, 3)) {
+      const [galaxy, system, position] = C(pl)
+      const f = p.mil * 1000 * (0.1 + rnd() * 0.5), d = p.mil * 1000 * (0.05 + rnd() * 0.2)
+      scans.push({ galaxy, system, position, moon: false, player_id: Number(p.id), observed_at: iso(now - int(1, 100) * 36e5), ...breakdown(f, d, false) })
+      if (pl.moon && rnd() < 0.7) {
+        const b = breakdown(p.mil * 1000 * rnd() * 0.6, 0, true)
+        const known = moons.find((m) => m.galaxy === galaxy && m.system === system && m.position === position)
+        b.buildings[42] = known?.phalanx ?? 0
+        b.buildings[43] = known?.gate ? 1 : 0
+        scans.push({ galaxy, system, position, moon: true, player_id: Number(p.id), observed_at: iso(now - int(1, 100) * 36e5), ...b })
+      }
+    }
   }
 
   // player intel from (pretend) spy reports

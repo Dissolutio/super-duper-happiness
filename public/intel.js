@@ -81,7 +81,17 @@ async function saveReport(rep) {
   if (scan) {
     const where = `[${scan.galaxy}:${scan.system}:${scan.position}]${scan.moon ? ' moon' : ''}`
     try {
-      const r = await sb('/rest/v1/rpc/add_scan', { method: 'POST', token: await getToken(), body: { p_galaxy: scan.galaxy, p_system: scan.system, p_position: scan.position, p_moon: scan.moon, p_player: scan.player_id, p_fleet: scan.fleet, p_defense: scan.defense, p_seen_at: rep.at } })
+      const base = { p_galaxy: scan.galaxy, p_system: scan.system, p_position: scan.position, p_moon: scan.moon, p_player: scan.player_id, p_fleet: scan.fleet, p_defense: scan.defense, p_seen_at: rep.at }
+      const detail = { p_ships: scan.ships, p_defense_units: scan.defense_units, p_buildings: scan.buildings, p_resources: scan.resources }
+      let r
+      try {
+        r = await sb('/rest/v1/rpc/add_scan', { method: 'POST', token: await getToken(), body: { ...base, ...detail } })
+      } catch (e) {
+        // database not updated yet (migration 0002): save the values without the breakdown
+        if (e.status === 401 || !/add_scan|PGRST202|function/i.test(e.message)) throw e
+        r = await sb('/rest/v1/rpc/add_scan', { method: 'POST', token: await getToken(), body: base })
+        lines.push('(Ships, defence and buildings were not kept: the database needs update 0002. See the README.)')
+      }
       if (r === 'older') lines.push(`No new scan of ${where}: we already have a newer report.`)
       else { lines.push(`Scan ${where}: ships worth ${shortNum(scan.fleet / 1000)} points, defence ${shortNum(scan.defense / 1000)}.`); updated++ }
       if (typeof MAP !== 'undefined') MAP.scans = null // the map reloads scans when it opens
