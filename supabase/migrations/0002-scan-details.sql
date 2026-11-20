@@ -3,6 +3,13 @@
 
 begin;
 
+-- stop early with a clear message if migration 1 has not been run
+do $$ begin
+  if to_regclass('public.schema_version') is null then
+    raise exception 'Run migrations/0001-from-legacy-files.sql first, then this file again. Nothing was changed.';
+  end if;
+end $$;
+
 alter table public.scans add column if not exists ships jsonb;
 alter table public.scans add column if not exists defense_units jsonb;
 alter table public.scans add column if not exists buildings jsonb;
