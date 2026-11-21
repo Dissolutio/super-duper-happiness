@@ -76,7 +76,7 @@ async function poll() {
 }
 
 function showView(view) { // 'data', 'players' or a channel slug
-  const isChat = !['data', 'players', 'map'].includes(view)
+  const isChat = !['data', 'players', 'map', 'battles'].includes(view)
   clearInterval(chat.timer)
   chat.channel = isChat ? view : null
   chat.lastId = 0
@@ -84,6 +84,8 @@ function showView(view) { // 'data', 'players' or a channel slug
   el('data').hidden = view !== 'data'
   el('intel').hidden = view !== 'players'
   el('map').hidden = view !== 'map'
+  el('battles').hidden = view !== 'battles'
+  if (typeof stopBattle === 'function') stopBattle()
   document.body.classList.toggle('map-active', view === 'map') // the map screen fills the window and does not scroll
   el('chat').hidden = !isChat
   el('landings-box').hidden = view !== 'targets'
@@ -91,6 +93,7 @@ function showView(view) { // 'data', 'players' or a channel slug
   if (typeof closePlayer === 'function') closePlayer()
   if (view === 'targets') loadCalc() // owners of planets, for the landings
   if (view === 'map') openMap()
+  if (view === 'battles') openBattles()
   if (view === 'players') {
     loadIntel()
     loadCalc()

@@ -51,13 +51,15 @@ function combatChanges(m, row) {
 
 // save one parsed report. Returns { lines, updated } where updated = how many players got new intel
 async function saveReport(rep) {
-  const { moon, scan, ...intel } = rep // the moon and scan parts go to their own tables below
+  const { moon, scan, battle, ...intel } = rep // the moon, scan and battle parts go to their own tables below
+  // a combat report is also kept whole as a battle, even if its intel was added before
+  const battleLine = battle ? await saveBattle(battle) : null
   const status = await sb('/rest/v1/rpc/add_intel', { method: 'POST', body: { p: intel }, token: await getToken() })
-  if (status === 'duplicate') return { lines: ['No new intel: this report was already added.'], updated: 0 }
+  if (status === 'duplicate') return { lines: ['No new intel: this report was already added.', ...(battleLine ? [battleLine] : [])], updated: battleLine?.startsWith('Battle saved') ? 1 : 0 }
   const who = rep.kind === 'spy' ? [{ name: rep.name, id: rep.player_id, changes: techChanges(rep, rowFor(rep.player_id)) }]
     : rep.members.map((m) => ({ name: m.name, id: m.player_id, changes: combatChanges(m, rowFor(m.player_id)) }))
-  const lines = []
-  let updated = 0
+  const lines = battleLine ? [battleLine] : []
+  let updated = battleLine?.startsWith('Battle saved') ? 1 : 0
   for (const w of who) {
     if (status === 'older') lines.push(`No new intel on ${w.name}: we already have newer data.`)
     else if (!rowFor(w.id)) { lines.push(`New player: ${w.name}.`); updated++ }
@@ -144,3 +146,17 @@ el('intel-go').onclick = async () => {
 
 // report lookup switched off in config.js: say so instead of offering it
 if (!REPORT_LOOKUP && el('lookup-hint')) el('lookup-hint').innerHTML = '<b>Report ids are switched off here.</b> Paste the whole report page instead (see below).'
+
+// keep a combat report's whole fight (Battles screen). Returns one line for the result list.
+async function saveBattle(battle) {
+  try {
+    const r = await sb('/rest/v1/rpc/add_battle', { method: 'POST', token: await getToken(), body: { p: battle } })
+    if (typeof BATTLES !== 'undefined') BATTLES.list = null // reload the list next time
+    const who = (side) => [...new Set(battle.fleets.filter((f) => f.side === side).map((f) => f.tag || f.name))].join(' + ')
+    return r === 'duplicate' ? 'Battle already saved.' : `Battle saved: ${who('a')} vs ${who('d')} at [${battle.coords}]. See Battles in the menu.`
+  } catch (e) {
+    if (e.status === 401) throw e
+    if (/add_battle|PGRST202|function/i.test(e.message)) return 'The battle was not kept: the database needs update 0003 (see the README).'
+    return `Could not save the battle: ${e.message}`
+  }
+}

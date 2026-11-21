@@ -199,5 +199,94 @@ const DEMO = (() => {
   ]
   const messages = said.map(([channel, by, body], i) => ({ id: i + 1, channel, body, created_at: iso(now - (said.length - i) * 7 * 60000), author: prof(by).id, profiles: { display_name: prof(by).display_name } }))
 
-  return { xml, me, db: { profiles: profiles.map(({ player, ...p }) => p), messages, landings, moons, scans, player_intel, intel_reports: [] } }
+  // ---- battles: simulated fights, made on first use (they need units.js, which loads after this file) ----
+  // A small version of the game's combat: every unit fires once per round at a random enemy; a shot under 1% of the
+  // target's shield bounces; shields soak first and recharge every round; a hit that leaves a unit below 70% hull may
+  // blow it up; some units get extra shots (rapid fire).
+  // rapid fire (shooter -> target: n means a 1 - 1/n chance of another shot), the main pairs
+  const RF_SMALL = { 210: 5, 212: 5, 217: 5 }
+  const RAPID_FIRE = {
+    202: RF_SMALL, 203: RF_SMALL, 204: RF_SMALL, 205: { ...RF_SMALL, 202: 3 }, 206: { ...RF_SMALL, 204: 6, 401: 10 }, 207: { ...RF_SMALL, 219: 5 },
+    211: { ...RF_SMALL, 401: 20, 402: 20, 403: 10, 405: 10, 404: 5, 406: 5 }, 213: { ...RF_SMALL, 402: 10, 215: 2 },
+    214: { 202: 250, 203: 250, 204: 200, 205: 100, 206: 33, 207: 30, 208: 250, 209: 250, 210: 1250, 211: 25, 212: 1250, 213: 5, 215: 15, 217: 1250, 218: 10, 219: 30, 401: 200, 402: 200, 403: 100, 404: 50, 405: 100 },
+    215: { ...RF_SMALL, 202: 3, 203: 3, 205: 4, 206: 4, 207: 7 }, 218: { ...RF_SMALL, 207: 7, 211: 4, 213: 3 }, 219: { ...RF_SMALL, 206: 3, 204: 3, 205: 2 },
+  }
+  function simulate(fleets, seedNo) {
+    let sd = seedNo
+    const r = () => { sd = (sd * 1103515245 + 12345) % 2147483648; return sd / 2147483648 }
+    const units = { a: [], d: [] }
+    for (const f of fleets) for (const [id, u] of Object.entries(f.units)) for (let i = 0; i < u.n; i++) units[f.side].push({ key: f.key, id, w: u.w, sMax: u.s, s: u.s, hMax: u.h, h: u.h })
+    const rounds = []
+    for (let round = 0; round < 6 && units.a.length && units.d.length; round++) {
+      const stat = { a: { strength: 0, hits: 0, absorbed: 0 }, d: { strength: 0, hits: 0, absorbed: 0 } }
+      for (const side of ['a', 'd']) for (const x of units[side]) x.s = x.sMax
+      for (const [side, other] of [['a', 'd'], ['d', 'a']]) {
+        const targets = units[other]
+        for (const x of units[side]) {
+          for (let shots = 0; shots < 2000; shots++) {
+            const t = targets[Math.floor(r() * targets.length)]
+            stat[side].hits++; stat[side].strength += x.w
+            if (x.w < t.sMax * 0.01) stat[other].absorbed += x.w
+            else {
+              const soak = Math.min(t.s, x.w); t.s -= soak; stat[other].absorbed += soak
+              if (x.w > soak && t.h > 0) { t.h -= x.w - soak; if (t.h < t.hMax * 0.7 && r() < 1 - t.h / t.hMax) t.h = 0 } // below 70% hull: may blow up
+            }
+            const rf = RAPID_FIRE[x.id]?.[t.id] // rapid fire: a chance to shoot again
+            if (!rf || r() >= 1 - 1 / rf) break
+          }
+        }
+      }
+      for (const side of ['a', 'd']) units[side] = units[side].filter((x) => x.h > 0) // the dead are still shot at until the round ends
+      const left = {}
+      for (const f of fleets) left[f.key] = Object.fromEntries(Object.keys(f.units).map((id) => [id, 0]))
+      for (const side of ['a', 'd']) for (const x of units[side]) left[x.key][x.id]++
+      for (const side of ['a', 'd']) for (const k of ['strength', 'absorbed']) stat[side][k] = Math.round(stat[side][k])
+      rounds.push({ ...stat, left })
+    }
+    return rounds
+  }
+  function makeBattles() {
+    const hex = () => Array.from({ length: 40 }, () => '0123456789abcdef'[int(0, 15)]).join('')
+    const fleet = (side, key, p, from, list, tech = [15, 15, 16]) => {
+      const pct = { w: tech[0] * 10, s: tech[1] * 10, a: tech[2] * 10 }
+      const units = {}
+      for (const [id, n] of Object.entries(list)) { const b = COMBAT_BASE[id]; units[id] = { n, w: Math.round(b[2] * (1 + pct.w / 100)), s: Math.round(b[1] * (1 + pct.s / 100)), h: Math.round(b[0] * (1 + pct.a / 100)) } }
+      return { side, key, id: Number(p.id), name: p.name, tag: p.alliance?.tag ?? '', from: from ?? p.planets[0].coords, fromMoon: !!from, pct, units }
+    }
+    const battle = (hoursAgo, at, fleets, seedNo) => {
+      const rounds = simulate(fleets, seedNo)
+      const end = rounds[rounds.length - 1].left
+      const alive = (side) => fleets.filter((f) => f.side === side).some((f) => Object.values(end[f.key]).some((n) => n > 0))
+      const winner = alive('a') && alive('d') ? 'draw' : alive('a') ? 'attacker' : 'defender'
+      const lostOf = (side) => fleets.filter((f) => f.side === side).reduce((t, f) => t + Object.entries(f.units).reduce((s, [id, u]) => s + (u.n - end[f.key][id]) * unitCost(id), 0), 0)
+      const shipLoss = fleets.reduce((t, f) => t + Object.entries(f.units).filter(([id]) => Number(id) < 400).reduce((s, [id, u]) => s + (u.n - end[f.key][id]) * unitCost(id), 0), 0)
+      const repaired = {}
+      for (const f of fleets.filter((x) => x.side === 'd')) for (const [id, u] of Object.entries(f.units)) if (Number(id) >= 400 && u.n > end[f.key][id]) repaired[id] = Math.round((u.n - end[f.key][id]) * 0.7)
+      const [g, s, p] = at.coords.split(':').map(Number)
+      const data = {
+        v: 1, hash: `cr-us-999-${hex()}`, at: Math.floor((now - hoursAgo * 36e5) / 1000), coords: at.coords, moon: !!at.moonFight, winner, fleets, rounds,
+        lost: { a: lostOf('a'), d: lostOf('d') }, debris: { m: Math.round(shipLoss * 0.3 * 0.6), c: Math.round(shipLoss * 0.3 * 0.35), d: 0 },
+        loot: winner === 'attacker' ? { m: int(200000, 3000000), c: int(100000, 1500000), d: int(50000, 800000) } : { m: 0, c: 0, d: 0 },
+        moonChance: Math.min(20, Math.floor(shipLoss * 0.3 / 100000)), moonMade: false, repaired,
+      }
+      const tags = (side) => [...new Set(fleets.filter((f) => f.side === side).map((f) => f.tag).filter(Boolean))]
+      return { hash: data.hash, fought_at: new Date(data.at * 1000).toISOString(), galaxy: g, system: s, position: p, winner, attacker_tags: tags('a'), defender_tags: tags('d'), lost_attacker: data.lost.a, lost_defender: data.lost.d, data, added_by: profiles[int(0, profiles.length - 1)].id }
+    }
+    const d0 = donut[0], d1 = donut[1], d2 = donut[2], g0 = grim[0], g1 = grim[1], g3 = grim[3]
+    const other = players.find((p) => p.alliance && !war(p) && p.status === '')
+    return [
+      // our crash fleet into a defended GRIM planet: the light fighters soak the turrets' fire
+      battle(5, g1.planets[1], [fleet('a', 'a0', d0, d0.planets[0].coords, { 218: 900, 207: 2800, 215: 900, 219: 500, 204: 6000 }, [16, 15, 17]), fleet('d', 'd0', g1, null, { 204: 1500, 206: 300, 202: 500, 401: 4000, 402: 2000, 403: 300, 404: 60, 406: 15, 407: 1, 408: 1 }, [14, 14, 15])], 11),
+      // GRIM deathstars with fodder hit our fleet parked on a moon: the fodder dies, the deathstars do not
+      battle(30, { coords: d1.planets[0].coords, moonFight: true }, [fleet('a', 'a0', g0, g0.planets[0].coords, { 214: 14, 204: 5000, 215: 500 }, [17, 16, 17]), fleet('d', 'd0', d1, null, { 207: 250, 206: 900, 203: 400, 204: 1500 }, [15, 15, 15])], 22),
+      // a suicide run: light fighters against shields they cannot get through
+      battle(52, d2.planets[0], [fleet('a', 'a0', g3, g3.planets[0].coords, { 204: 600 }, [12, 12, 12]), fleet('d', 'd0', d2, null, { 401: 1500, 402: 800, 404: 15, 407: 1, 408: 1, 212: 300 }, [15, 16, 15])], 33),
+      // two of ours together (ACS) against a GRIM fleet: six rounds, nobody wins
+      battle(80, g3.planets[0], [fleet('a', 'a0', d0, d0.planets[1].coords, { 207: 120, 215: 80 }, [15, 15, 15]), fleet('a', 'a1', d2, d2.planets[0].coords, { 206: 400, 204: 500 }, [14, 14, 14]), fleet('d', 'd0', g3, null, { 207: 150, 206: 300, 205: 600, 408: 1, 407: 1, 405: 300 }, [15, 16, 16])], 44),
+      // not part of the war: GRIM picks on someone else
+      ...(other ? [battle(120, other.planets[0], [fleet('a', 'a0', g0, g0.planets[1].coords, { 207: 300, 206: 500, 204: 1000 }), fleet('d', 'd0', other, null, { 204: 300, 401: 900, 402: 300 }, [11, 11, 11])], 55)] : []),
+    ]
+  }
+
+  return { xml, me, makeBattles, db: { profiles: profiles.map(({ player, ...p }) => p), messages, landings, moons, scans, player_intel, intel_reports: [], battles: null } }
 })()

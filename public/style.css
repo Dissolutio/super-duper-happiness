@@ -275,3 +275,37 @@ a.plink { color: #8ab4ff; text-decoration: underline; text-decoration-style: dot
 /* Data tab: player cards open the player's page */
 .card.tappable { cursor: pointer; }
 .card.tappable:active { filter: brightness(1.15); }
+
+/* ---- Battles ---- */
+#battles { padding-bottom: 24px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 10px; }
+.chips button { padding: 6px 10px; border-radius: 999px; background: var(--card); color: var(--text); border: 1px solid var(--line); font: inherit; font-size: .85rem; }
+.chips button.on { border-color: var(--a0, #f5a03c); background: #3a2a14; }
+.battle-card { display: block; width: 100%; text-align: left; font: inherit; color: var(--text); cursor: pointer; }
+.battle-card.war { border-left: 3px solid #f5a03c; }
+.battle-card .rank.win, b.win { color: #7ee0b5; } .battle-card .rank.loss, b.loss { color: #ff6b6b; }
+#battle-view h3 { margin: 10px 0 2px; } #battle-view h3 small { color: var(--dim); font-weight: 400; }
+.battle-steps { display: flex; gap: 4px; flex-wrap: wrap; margin: 8px 0; position: sticky; top: 0; z-index: 2; background: var(--bg, #16161c); padding: 4px 0; }
+.battle-steps button { min-width: 44px; min-height: 36px; padding: 0 8px; background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 8px; font: inherit; font-size: .85rem; }
+.battle-steps button.on { border-color: #f5a03c; background: #3a2a14; }
+#battle-play { margin-left: auto; }
+.battle-round, .battle-end { padding: 8px 10px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; font-size: .9rem; }
+.battle-round p, .battle-end p { margin: 3px 0; } .battle-round .rnum { font-weight: 700; color: #f5a03c; }
+.battle-end { margin-top: 10px; border-color: #7ee0b5aa; }
+.battle-sides { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 10px; }
+@media (min-width: 760px) { .battle-sides { grid-template-columns: 1fr 1fr; } }
+.bside { padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: #1b1b24; }
+.bside h4 { margin: 0 0 6px; } .bside.ours { border-color: #f5a03c88; } .bside.theirs { border-color: #c86bff88; }
+.bfleet + .bfleet { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--line); }
+.bfleet-head { font-weight: 600; margin-bottom: 4px; } .bfleet-head small { color: var(--dim); font-weight: 400; }
+.unit-row { margin: 6px 0; }
+.unit-head { display: flex; justify-content: space-between; font-size: .9rem; } .unit-head small { color: var(--dim); }
+.swarm { display: flex; flex-wrap: wrap; gap: 2px; margin: 3px 0 1px; }
+.swarm i { width: 7px; height: 7px; border-radius: 2px; background: #8a96d8; }
+.bside.ours .swarm i.up { background: #f5a03c; } .bside.theirs .swarm i.up { background: #c86bff; } /* red is kept for losses */
+.swarm i.gone { background: transparent; outline: 1px solid #44445a; }
+.swarm i.hit { background: #fff; animation: boom 1.2s ease-out forwards; }
+@keyframes boom { 0% { background: #fff; transform: scale(1.6); } 30% { background: #ff3b3b; transform: scale(1.2); } 100% { background: transparent; outline: 1px solid #ff3b3b88; transform: scale(1); } }
+.unit-meta { font-size: .72rem; color: var(--dim); }
+.battle-notes { padding-left: 18px; font-size: .9rem; line-height: 1.4; } .battle-notes li { margin: 6px 0; }
+button.link { background: none; border: 0; color: var(--dim); text-decoration: underline; font: inherit; font-size: .85rem; padding: 8px 0; }

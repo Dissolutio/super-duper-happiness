@@ -55,3 +55,16 @@ function unitList(counts, table, max = 99) {
   const fmt = (n) => (n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e4 ? Math.round(n / 1e3) + 'K' : n.toLocaleString('en-US'))
   return rows.slice(0, max).map(([id, n]) => `${fmt(n)} ${table[id][0]}`)
 }
+
+// Combat base values per unit: [hull (structural integrity), shield, weapon]. Combat tech adds 10% per level to each.
+// Reports usually give each unit's real values already; these are for the demo's battles and as a fallback.
+const COMBAT_BASE = {
+  202: [4000, 10, 5], 203: [12000, 25, 5], 204: [4000, 10, 50], 205: [10000, 25, 150], 206: [27000, 50, 400],
+  207: [60000, 200, 1000], 208: [30000, 100, 50], 209: [16000, 10, 1], 210: [1000, 0.01, 0.01], 211: [75000, 500, 1000],
+  212: [2000, 1, 1], 213: [110000, 500, 2000], 214: [9000000, 50000, 200000], 215: [70000, 400, 700], 217: [4000, 1, 1],
+  218: [140000, 700, 2800], 219: [23000, 100, 200],
+  401: [2000, 20, 80], 402: [2000, 25, 100], 403: [8000, 100, 250], 404: [35000, 200, 1100], 405: [8000, 500, 150],
+  406: [100000, 300, 3000], 407: [20000, 2000, 1], 408: [100000, 10000, 1],
+}
+const unitName = (id) => SHIP_UNITS[id]?.[0] ?? DEFENSE_UNITS[id]?.[0] ?? `Unit ${id}`
+const unitCost = (id) => SHIP_UNITS[id]?.[1] ?? DEFENSE_UNITS[id]?.[1] ?? 0

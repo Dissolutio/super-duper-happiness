@@ -80,6 +80,21 @@
         db.scans.push({ galaxy: b.p_galaxy, system: b.p_system, position: b.p_position, moon: !!b.p_moon, player_id: b.p_player, fleet_value: b.p_fleet, defense_value: b.p_defense, observed_at: new Date(b.p_seen_at * 1000).toISOString(), ships: b.p_ships ?? null, defense_units: b.p_defense_units ?? null, buildings: b.p_buildings ?? null, resources: b.p_resources ?? null })
         return json(i >= 0 ? 'updated' : 'new')
       }
+      case '/rest/v1/battles': {
+        db.battles ??= DEMO.makeBattles()
+        if (method === 'DELETE') { const i = db.battles.findIndex((x) => x.hash === eq('hash') && x.added_by === DEMO.me); if (i >= 0) db.battles.splice(i, 1); return json(null, 204) }
+        if (q.get('hash')) return json(db.battles.filter((x) => x.hash === eq('hash')).map(({ data, added_by }) => ({ data, added_by })))
+        return json([...db.battles].sort((x, y) => y.fought_at.localeCompare(x.fought_at)).map(({ data, ...row }) => row))
+      }
+      case '/rest/v1/rpc/add_battle': {
+        db.battles ??= DEMO.makeBattles()
+        const b = body.p
+        if (!b?.hash || db.battles.some((x) => x.hash === b.hash)) return json('duplicate')
+        const [g, s2, p2] = String(b.coords).split(':').map(Number)
+        const tags = (side) => [...new Set(b.fleets.filter((f) => f.side === side).map((f) => f.tag).filter(Boolean))]
+        db.battles.push({ hash: b.hash, fought_at: new Date(b.at * 1000).toISOString(), galaxy: g, system: s2, position: p2, winner: b.winner, attacker_tags: tags('a'), defender_tags: tags('d'), lost_attacker: b.lost?.a ?? 0, lost_defender: b.lost?.d ?? 0, data: b, added_by: DEMO.me })
+        return json('added')
+      }
       case '/rest/v1/push_subscriptions': return json([])
       case '/rest/v1/rpc/save_push': return fail('Alerts are switched off in the demo.')
     }

@@ -1,6 +1,6 @@
 // Reads a pasted OGame report (the HTML of the opened message) into a small plain object.
 // Spy report  -> { kind:'spy', hash, at, player_id, name, class, coords, tech:{id:level}, speed_bonus:{shipId:percent} }
-// Combat rpt  -> { kind:'combat', hash, at, coords, members:[{player_id, name, pct:{weapon,shield,armor}}] }
+// Combat rpt  -> { kind:'combat', hash, at, coords, members:[{player_id, name, pct:{weapon,shield,armor}}], battle (battle-parse.js) }
 // Nothing here talks to the game or the network. DOMParser never runs scripts or loads images.
 // The result is checked again by add_intel() in the database, so treat this as convenience, not security.
 
@@ -105,7 +105,7 @@ function parseCombat(doc, a, json) {
   }
   // same player can appear in several fleets: keep one entry each
   const unique = [...new Map(members.map((m) => [m.player_id, m])).values()]
-  return { kind: 'combat', via: 'html', hash: a('hashcode'), at: Number(a('timestamp')), coords: a('coords'), members: unique }
+  return { kind: 'combat', via: 'html', hash: a('hashcode'), at: Number(a('timestamp')), coords: a('coords'), members: unique, battle: battleFromHtml(a, json, data) }
 }
 
 // ---- Report ID lookup (the short "sr-<community>-<server>-..." / "cr-..." id from a report's API-key button) ----
@@ -140,7 +140,7 @@ const asId = (n) => (Number.isInteger(n) && n > 0 ? n : null)
 
 function spyFromJson(id, j) {
   const g = j?.generic
-  if (!g || g.sr_id !== id.slice(10) || !asId(g.defender_user_id) || !g.defender_name) return null // the target of a spy report is the "defender"
+  if (!g || g.sr_id !== id.slice(id.lastIndexOf('-') + 1) || !asId(g.defender_user_id) || !g.defender_name) return null // the target of a spy report is the "defender"
   const tech = {}
   for (const r of j.details?.research ?? []) if (KEEP_TECH.includes(r.research_type)) tech[r.research_type] = Number(r.level)
   const speed_bonus = {}
@@ -169,10 +169,10 @@ function idScan(g, d, levels) {
 
 function combatFromJson(id, j) {
   const g = j?.generic
-  if (!g || g.cr_id !== id.slice(10)) return null
+  if (!g || g.cr_id !== id.slice(id.lastIndexOf('-') + 1)) return null
   const members = [...(j.attackers ?? []), ...(j.defenders ?? [])]
     .filter((m) => asId(m.fleet_owner_id) && m.fleet_owner)
     .map((m) => ({ player_id: m.fleet_owner_id, name: m.fleet_owner, pct: { weapon: m.fleet_weapon_percentage, shield: m.fleet_shield_percentage, armor: m.fleet_armor_percentage } }))
   const unique = [...new Map(members.map((m) => [m.player_id, m])).values()]
-  return unique.length ? { kind: 'combat', via: 'id', hash: id, at: g.event_timestamp, coords: g.combat_coordinates, members: unique } : null
+  return unique.length ? { kind: 'combat', via: 'id', hash: id, at: g.event_timestamp, coords: g.combat_coordinates, members: unique, battle: battleFromJson(id, j) } : null
 }
